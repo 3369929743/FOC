@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: build/Debug
+  Add:
+    - -D__FPU_PRESENT=1U
