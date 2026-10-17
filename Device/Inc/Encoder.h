@@ -21,4 +21,5 @@ typedef struct
 void Encoder_Init(Encoder_t *encoder, uint32_t Encoder_Res, uint32_t Motor_Pn, uint32_t Encoder_Dir, Encoder_Read_Data_t Read_Data);
 void Encoder_Update(Encoder_t *encoder);
 
+
 #endif
