@@ -1,6 +1,5 @@
 # 编译产物
 build/
-cmake/
 *.o
 *.elf
 *.bin
