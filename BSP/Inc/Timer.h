@@ -26,11 +26,15 @@ typedef struct Timer_Struct{
     uint32_t Channel;
     
     void (*PeriodElapsedCallback)(struct Timer_Struct *timer);
+    void (*TriggerCallback)(struct Timer_Struct *timer);
+    void (*PulseFinishedCallback)(struct Timer_Struct *timer);
 } Timer_t;
 
 uint8_t Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num);
 void Timer_Comple_PWM_Start(Timer_t *timer, uint32_t Channel);
-void Timer_Start_IT(Timer_t* timer, void(*Callback)(Timer_t *timer));
+void Timer_Start_Base_IT(Timer_t* timer, void(*Callback)(Timer_t *timer));
+void Timer_Start_PWM_IT(Timer_t* timer, uint32_t Channel, void(*Callback)(Timer_t *timer));
+void Timer_Start_PulseFinished_IT(Timer_t *timer, uint32_t Channel, void(*Callback)(Timer_t *timer));
 
 /**
  * @brief  设置定时器的比较值，用于控制PWM输出的占空比

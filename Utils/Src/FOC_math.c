@@ -34,6 +34,12 @@ static inline float Min(float a, float b, float c){
     return a < b ? (a < c ? a : c) : (b < c ? b : c);
 }
 
+/**
+ * @brief FOC基础参数初始化：设置母线电压和定时器自动重装值
+ * @param foc FOC对象指针
+ * @param Ubus 母线电压(V)
+ * @param TARR 定时器自动重装值(ARR)，决定PWM分辨率
+ */
 void FOC_Param_Init(FOC_t *foc, float Ubus, float TARR){
     foc->Ubus = Ubus;
     foc->TARR = TARR;
@@ -101,6 +107,14 @@ void FOC_Voltage_Update(FOC_t *foc){
     FOC_Zero_Injection(foc);
 }
 
+/**
+ * @brief V/f控制参数初始化：设置加速度、目标速度、死区阈值及FOC时间步长
+ * @param vf V/f控制结构体指针
+ * @param Acc 加速度(rpm/s)
+ * @param Target_Speed 目标速度(rpm)
+ * @param Speed_Dead 死区阈值(rpm)，用于抑制稳态抖振
+ * @param FOC_Ts FOC控制周期(s)
+ */
 void FOC_Vf_Control_Param_Init(Vf_Control_t *vf, float Acc, float Target_Speed, float Speed_Dead, float FOC_Ts){
     vf->Acc = Acc;
     vf->Target_Speed = Target_Speed;
@@ -108,22 +122,47 @@ void FOC_Vf_Control_Param_Init(Vf_Control_t *vf, float Acc, float Target_Speed, 
     vf->FOC_Ts = FOC_Ts;
 }
 
+/**
+ * @brief 设置V/f控制的加速度
+ * @param vf V/f控制结构体指针
+ * @param Acc 加速度(rpm/s)
+ */
 void Foc_Vf_Control_SetAcc(Vf_Control_t *vf, float Acc){
     vf->Acc = Acc;
 }
 
+/**
+ * @brief 设置V/f控制的目标速度
+ * @param vf V/f控制结构体指针
+ * @param Target_Speed 目标速度(rpm)
+ */
 void Foc_Vf_Control_SetTarget_Speed(Vf_Control_t *vf, float Target_Speed){
     vf->Target_Speed = Target_Speed;
 }
 
+/**
+ * @brief 设置V/f控制的速度死区阈值
+ * @param vf V/f控制结构体指针
+ * @param Speed_Dead 死区阈值(rpm)，用于抑制稳态抖振
+ */
 void Foc_Vf_Control_SetSpeed_Dead(Vf_Control_t *vf, float Speed_Dead){
     vf->Speed_Dead = Speed_Dead;
 }
 
+/**
+ * @brief 设置V/f控制的FOC时间步长
+ * @param vf V/f控制结构体指针
+ * @param FOC_Ts FOC控制周期(s)
+ */
 void Foc_Vf_Control_SetFOC_Ts(Vf_Control_t *vf, float FOC_Ts){
     vf->FOC_Ts = FOC_Ts;
 }
 
+/**
+ * @brief V/f控制更新：执行带死区的速度积分和角度积分
+ * @param vf V/f控制结构体指针
+ * @note  计算流程：原始误差 → 死区处理 → 加速度方向判断 → 速度积分 → 角度积分 → 角度归一化到[0, 2π)
+ */
 void Foc_Vf_Control_Update(Vf_Control_t *vf){
 
     /*  计算原始不带死区的误差 */
@@ -158,8 +197,25 @@ void Foc_Vf_Control_Update(Vf_Control_t *vf){
     else if(vf->Theta < 0) vf->Theta += __2PI;
 }
 
+/**
+ * @brief FOC总更新函数：依次执行V/f速度控制更新和SVPWM电压更新
+ * @param foc FOC对象指针
+ * @note  先更新V/f控制得到电角度Theta，再执行反Park→反Clarke→SVPWM生成PWM比较值
+ */
 void FOC_Update(FOC_t *foc){
     Foc_Vf_Control_Update(&foc->Vf_Param);
     foc->Theta = foc->Vf_Param.Theta;
+    FOC_Voltage_Update(foc);
+}
+
+/**
+ * @brief FOC编码器模式更新函数：使用编码器提供的电角度执行SVPWM电压更新
+ * @param foc FOC对象指针
+ * @param Theta_e 编码器反馈的电角度（单位：rad）
+ * @note  与FOC_Update不同，该函数不经过V/f控制，直接使用外部编码器角度。
+ *         适用于编码器反馈模式下的电流闭环控制。
+ */
+void FOC_Eocoder_Update(FOC_t *foc, float Theta_e){
+    foc->Theta = Theta_e;
     FOC_Voltage_Update(foc);
 }

@@ -113,6 +113,7 @@
   *        5. TxBuffer_Size默认为64字节，发送数据超出此长度会被截断
   ******************************************************************************
   */
+#ifdef HAL_UART_MODULE_ENABLED
 
 #include "Serial.h"
 #include "string.h"
@@ -443,3 +444,4 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     }
   }
 }
+#endif

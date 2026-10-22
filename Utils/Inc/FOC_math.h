@@ -22,20 +22,20 @@ typedef struct
 {
     float Ubus;             //母线电压
     float TARR;             //自动重装值
-    float Vd;   
-    float Vq;
-    float Theta;
+    float Vd;               //d轴电压，d轴为直轴，控制磁场和厉磁分量
+    float Vq;               //q轴电压，q轴为交轴，控制转矩分量
+    float Theta;            //转子在磁场中的电角度，转子和d轴同轴
 
-    float Valpha;
-    float Vbeta;
+    float Valpha;           //alpha轴电压，alpha轴为直角坐标系的x轴
+    float Vbeta;            //beta轴电压，beta轴为直角坐标系的y轴
 
-    float Vu;
-    float Vv;
-    float Vw;
+    float Vu;               //u相电压
+    float Vv;               //v相电压
+    float Vw;               //w相电压
 
-    float Vu_mod;
-    float Vv_mod;
-    float Vw_mod;
+    float Vu_mod;           //u相电压，经过FOC变换后的电压
+    float Vv_mod;           //v相电压，经过FOC变换后的电压
+    float Vw_mod;           //w相电压，经过FOC变换后的电压
 
     volatile float Tcmp1;    // u相比较值
     volatile float Tcmp2;    // v相比较值
@@ -56,6 +56,9 @@ void Foc_Vf_Control_SetTarget_Speed(Vf_Control_t *vf, float Target_Speed);
 void Foc_Vf_Control_SetSpeed_Dead(Vf_Control_t *vf, float Speed_Dead);
 void Foc_Vf_Control_Update(Vf_Control_t *vf);
 
+void FOC_Eocoder_Update(FOC_t *foc, float Theta_e);
+
 void FOC_Update(FOC_t *foc);
+void FOC_Eocoder_Update(FOC_t *foc, float Theta_e);
 
 #endif

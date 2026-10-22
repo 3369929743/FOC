@@ -93,6 +93,7 @@ uint8_t Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num)
     timer->htim = TIM_Map[TIM_Num];
     /* 初始化回调函数指针为空，等待用户通过Timer_Start_IT设置 */
     timer->PeriodElapsedCallback = NULL;
+    timer->TriggerCallback = NULL;
     return 0;
 }
 
@@ -118,7 +119,7 @@ void Timer_Comple_PWM_Start(Timer_t *timer, uint32_t Channel){
  * @retval 无
  * @note   该函数会保存用户回调函数指针，然后调用HAL库启动定时器中断
  */
-void Timer_Start_IT(Timer_t* timer, void(*Callback)(Timer_t *timer))
+void Timer_Start_Base_IT(Timer_t* timer, void(*Callback)(Timer_t *timer))
 {
     /* 空指针检查 */
     if(timer == NULL) return;
@@ -126,6 +127,40 @@ void Timer_Start_IT(Timer_t* timer, void(*Callback)(Timer_t *timer))
     timer->PeriodElapsedCallback = Callback;
     /* 调用STM32 HAL库函数，启动定时器并使能更新中断 */
     HAL_TIM_Base_Start_IT(timer->htim);
+}
+
+/**
+ * @brief  启动PWM输出并注册触发中断回调
+ * @param  timer: 指向定时器结构体的指针
+ * @param  Channel: PWM输出通道（TIM_CHANNEL_1 ~ TIM_CHANNEL_4）
+ * @param  Callback: 触发中断时的回调函数指针，函数签名为 void(*)(Timer_t*)
+ * @retval 无
+ * @note   该函数会保存用户回调函数指针和通道号，
+ *         然后启动对应通道的PWM输出并开启触发中断。
+ */
+void Timer_Start_PWM_IT(Timer_t* timer, uint32_t Channel, void(*Callback)(Timer_t *timer))
+{
+    if(timer == NULL || timer->htim == NULL) return;
+    timer->Channel = Channel;
+    timer->TriggerCallback = Callback;
+    HAL_TIM_PWM_Start_IT(timer->htim, timer->Channel);
+}
+
+/**
+ * @brief  启动PWM输出并注册脉冲完成中断回调
+ * @param  timer: 指向定时器结构体的指针
+ * @param  Channel: PWM输出通道（TIM_CHANNEL_1 ~ TIM_CHANNEL_4）
+ * @param  Callback: 脉冲完成时的回调函数指针，函数签名为 void(*)(Timer_t*)
+ * @retval 无
+ * @note   该函数会保存用户回调函数指针和通道号，
+ *         然后启动对应通道的PWM输出及其中断。
+ *         适用于FOC中PWM触发ADC注入采样后，在脉冲完成中断里读取电流。
+ */
+void Timer_Start_PulseFinished_IT(Timer_t *timer, uint32_t Channel, void(*Callback)(Timer_t *timer)){
+    if(timer == NULL || timer->htim == NULL) return;
+    timer->Channel = Channel;
+    timer->PulseFinishedCallback = Callback;
+    HAL_TIM_PWM_Start_IT(timer->htim, timer->Channel);
 }
 
 /**
@@ -144,6 +179,45 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if(timer->PeriodElapsedCallback != NULL)
         {
             timer->PeriodElapsedCallback(timer);
+        }
+    }
+}
+
+/**
+ * @brief  PWM触发中断回调函数，用于处理PWM触发事件
+ * @param  htim: TIM_HandleTypeDef指针，指向触发中断的定时器句柄
+ * @retval 无
+ * @note   该函数会根据定时器句柄查找对应的定时器实例，
+ *         并调用用户定义的Trigger回调函数（如果存在）
+ */
+void HAL_TIM_PWM_TriggerCallback(TIM_HandleTypeDef *htim)
+{
+    Timer_t* timer = Timer_GetInstance(htim);
+    if(timer != NULL)
+    {
+        if(timer->TriggerCallback != NULL)
+        {
+            timer->TriggerCallback(timer);
+        }
+    }
+}
+
+/**
+ * @brief  PWM脉冲完成中断回调函数，用于处理PWM脉冲结束事件
+ * @param  htim: TIM_HandleTypeDef指针，指向触发中断的定时器句柄
+ * @retval 无
+ * @note   该函数会根据定时器句柄查找对应的定时器实例，
+ *         并调用用户定义的PulseFinished回调函数（如果存在）。
+ *         常用于FOC中在PWM中心点触发ADC注入采样后，在此回调中读取并处理电流数据。
+ */
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+    Timer_t* timer = Timer_GetInstance(htim);
+    if(timer != NULL)
+    {
+        if(timer->PulseFinishedCallback != NULL)
+        {
+            timer->PulseFinishedCallback(timer);
         }
     }
 }
