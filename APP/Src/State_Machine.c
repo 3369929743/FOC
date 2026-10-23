@@ -36,8 +36,9 @@ static Timer_t TIM_FOC;
 static SoftTimer_t Soft_Timer_FOC;
 
 /*-------------------- Vofa通道实例 -------------------- */
-static Vofa_Ch_t ADC_Voltage_Ch;
-static Vofa_Ch_t ADC_Current_Ch;
+static Vofa_Ch_t ADC_IU_Ch;
+static Vofa_Ch_t ADC_IV_Ch;
+static Vofa_Ch_t ADC_IW_Ch;
 
 /*-------------------- 编码器实例 -------------------- */
 static Encoder_t Encoder_1;
@@ -50,9 +51,11 @@ static FOC_t Foc_Motor = {
 };
 
 /*-------------------- ADC实例 -------------------- */
-static ADC_t ADC_IU;
-static ADC_t ADC_IV;
-static ADC_t ADC_IW;
+static ADC_t ADC_Current;
+
+static ADC_Channel_t ADC_IU;
+static ADC_Channel_t ADC_IV;
+static ADC_Channel_t ADC_IW;
 
 static ADC_BSP_Param_t ADC_BSP_Param;
 
@@ -67,13 +70,16 @@ static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
 
 static void Timer_Foc_CaculateCallback(Timer_t *timer){
     if(timer == &TIM_FOC){
+        My_ADC_InjectedStart(&ADC_Current);
         /* 读取ADC值 */
         My_ADC_Get_InjectedValue(&ADC_IU, ADC_INJECTED_RANK_1);
         My_ADC_Get_InjectedValue(&ADC_IV, ADC_INJECTED_RANK_2);
+        My_ADC_Get_InjectedValue(&ADC_IW, ADC_INJECTED_RANK_3);
 
         /* 计算电流 */
         My_ADC_Calculate_Current(&ADC_IU, &ADC_BSP_Param);
         My_ADC_Calculate_Current(&ADC_IV, &ADC_BSP_Param);
+        My_ADC_Calculate_Current(&ADC_IW, &ADC_BSP_Param);
 
         /* 进行FOC计算 */
         FOC_Eocoder_Update(&Foc_Motor, Encoder_Update(&Encoder_1));
@@ -95,12 +101,13 @@ void State_Machine_Init(void){
 
     /* 初始化ADC参数 */
     My_ADC_BSP_Param_Init(&ADC_BSP_Param, ADC_CURRENT_GAIN, ADC_BIAS, ADC_SHUNT_RES);
-    My_ADC_Init(&ADC_IU, ADC_1);
-    My_ADC_Init(&ADC_IV, ADC_1);
+    My_ADC_Init(&ADC_Current, ADC_1);
+    My_ADC_Channel_Init(&ADC_IU, ADC_1);
+    My_ADC_Channel_Init(&ADC_IV, ADC_1);
+    My_ADC_Channel_Init(&ADC_IW, ADC_1);
 
     /* 初始化ADC注入模式 */
-    My_ADC_InjectedStart(&ADC_IU);
-    My_ADC_InjectedStart(&ADC_IV);
+    My_ADC_InjectedStart(&ADC_Current);
 
     /* 初始化定时器 */
     Timer_Init(&TIM_Global, Timer_6);
@@ -118,6 +125,9 @@ void State_Machine_Init(void){
 
     /* 初始化Vofa通道 */
     Vofa_Init(CDC_Transmit_FS);
+
+    Vofa_Ch_Register(3,&ADC_IU_Ch, &ADC_IV_Ch, &ADC_IW_Ch);
+    Vofa_Data_Register(3, &ADC_IU.current, &ADC_IV.current, &ADC_IW.current);
 }
 
 void State_Machine_Loop(void){

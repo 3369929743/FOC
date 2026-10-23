@@ -16,11 +16,15 @@ typedef enum{
 
 typedef struct{
     ADC_HandleTypeDef *hadc;
+}ADC_t;
+
+typedef struct{
+    ADC_Num_e adc_num;
 
     uint32_t value;
     float voltage;
     float current;
-}ADC_t;
+}ADC_Channel_t;
 
 typedef struct{
     float current_gain;      //运放增益
@@ -32,14 +36,15 @@ typedef struct{
 }ADC_BSP_Param_t;
 
 uint8_t My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num);
+void My_ADC_Channel_Init(ADC_Channel_t* adc, ADC_Num_e adc_num);
 void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float V_bias, float R_Shunt);
 
 void My_ADC_RegularStart(ADC_t* adc);
 void My_ADC_InjectedStart(ADC_t* adc);
-void My_ADC_Get_RegularValue(ADC_t* adc);
-void My_ADC_Get_InjectedValue(ADC_t* adc, uint32_t InjectedRank);
+void My_ADC_Get_RegularValue(ADC_Channel_t* adc);
+void My_ADC_Get_InjectedValue(ADC_Channel_t* adc, uint32_t InjectedRank);
 
-void My_ADC_Calculate_Voltage(ADC_t* adc, ADC_BSP_Param_t* param);
-void My_ADC_Calculate_Current(ADC_t* adc, ADC_BSP_Param_t* param);
+void My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param);
+void My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param);
 
 #endif

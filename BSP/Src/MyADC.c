@@ -51,6 +51,17 @@ uint8_t My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num){
 }
 
 /**
+ * @brief  初始化ADC通道实例，记录所属的硬件ADC编号
+ * @param  adc: 指向ADC_Channel_t结构体的指针
+ * @param  adc_num: 该通道所属的ADC编号（ADC_1/ADC_2），用于后续通过ADC_Map反查硬件句柄
+ * @note   一个硬件ADC（如ADC1）可以有多个注入通道（如Rank1/2/3对应U/V/W三相），
+ *         每个通道通过此函数独立记录其硬件归属，读取时通过ADC_Map[adc_num]获取句柄。
+ */
+void My_ADC_Channel_Init(ADC_Channel_t* adc, ADC_Num_e adc_num){
+    adc->adc_num = adc_num;
+}
+
+/**
  * @brief  初始化ADC板级参数并预计算缩放因子
  * @param  adc: 指向ADC_BSP_Param_t结构体的指针，用于存储参数
  * @param  current_gain: 运放增益（V/V）
@@ -89,45 +100,43 @@ void My_ADC_InjectedStart(ADC_t* adc){
 
 /**
  * @brief  获取ADC常规通道的采样值
- * @param  adc: 指向ADC实例结构体的指针
+ * @param  adc: 指向ADC_Channel_t结构体的指针
  * @note   读取当前ADC常规通道的转换结果并存入 adc->value。
  *         调用前需确保已通过 My_ADC_RegularStart() 启动转换。
  */
-void My_ADC_Get_RegularValue(ADC_t* adc){
-    adc->value = HAL_ADC_GetValue(adc->hadc);
+void My_ADC_Get_RegularValue(ADC_Channel_t* adc){
+    adc->value = HAL_ADC_GetValue(ADC_Map[adc->adc_num]);
 }
 
 /**
- * @brief  获取ADC注入通道的采样值并转换为电压
- * @param  adc: 指向ADC实例结构体的指针
+ * @brief  获取ADC注入通道的采样值
+ * @param  adc: 指向ADC_Channel_t结构体的指针
  * @param  InjectedRank: 注入通道的组内编号（ADC_INJECTED_RANK_1 ~ 4）
- * @retval uint32_t: 返回原始ADC计数值（0~4095）
  * @note   注入通道通常由定时器触发，优先级高于常规通道，适合FOC电流采样等需要精确时刻的场景。
- *         同时将计数值换算为实际电压存入 adc->voltage（单位V）
+ *         读取的原始ADC计数值存入 adc->value，后续通过 My_ADC_Calculate_Current 换算为实际电流。
  */
-void My_ADC_Get_InjectedValue(ADC_t* adc, uint32_t InjectedRank){
-    HAL_ADCEx_InjectedStart(adc->hadc);
-    adc->value = HAL_ADCEx_InjectedGetValue(adc->hadc, InjectedRank);
+void My_ADC_Get_InjectedValue(ADC_Channel_t* adc, uint32_t InjectedRank){
+    adc->value = HAL_ADCEx_InjectedGetValue(ADC_Map[adc->adc_num], InjectedRank);
 }
 
 /**
  * @brief  将ADC原始值转换为差分电压（相对偏置点）
- * @param  adc: 指向ADC实例结构体的指针，读取 adc->value 并写入 adc->voltage
- * @param  param: 指向ADC板级参数的指针，提供偏置计数值 V_bias 和电压缩放因子 Voltage_scale
+ * @param  adc: 指向ADC_Channel_t结构体的指针，读取 adc->value 并写入 adc->voltage
+ * @param  param: 指向ADC_BSP_Param_t的指针，提供偏置计数值 V_bias 和电压缩放因子 Voltage_scale
  * @note   结果 = (value - V_bias) × Voltage_scale，即采样电阻两端的差分电压，单位：V。
  *         零电流时结果为0，正/负分别对应正/反向电流。
  */
-void My_ADC_Calculate_Voltage(ADC_t* adc, ADC_BSP_Param_t* param){
+void My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
     adc->voltage = (float)(adc->value - param->V_bias) * param->Voltage_scale;
 }
 
 /**
  * @brief  将ADC原始值转换为相电流
- * @param  adc: 指向ADC实例结构体的指针，读取 adc->value 并写入 adc->current
- * @param  param: 指向ADC板级参数的指针，提供偏置计数值 V_bias 和电流缩放因子 Current_scale
+ * @param  adc: 指向ADC_Channel_t结构体的指针，读取 adc->value 并写入 adc->current
+ * @param  param: 指向ADC_BSP_Param_t的指针，提供偏置计数值 V_bias 和电流缩放因子 Current_scale
  * @note   结果 = (value - V_bias) × Current_scale，单位：A。
  *         Current_scale 已在 My_ADC_BSP_Param_Init 中预计算，此处仅需一次减法+乘法。
  */
-void My_ADC_Calculate_Current(ADC_t* adc, ADC_BSP_Param_t* param){
+void My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
     adc->current = (float)(adc->value - param->V_bias) * param->Current_scale;
 }
