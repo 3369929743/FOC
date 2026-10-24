@@ -70,7 +70,13 @@ static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
 
 static void Timer_Foc_CaculateCallback(Timer_t *timer){
     if(timer == &TIM_FOC){
-        My_ADC_InjectedStart(&ADC_Current);
+
+    }
+}
+
+/* ====================== ADC回调函数 ====================== */
+void My_ADC_InjectedConvCpltCallback(ADC_t* adc){
+    if(adc == &ADC_Current){
         /* 读取ADC值 */
         My_ADC_Get_InjectedValue(&ADC_IU, ADC_INJECTED_RANK_1);
         My_ADC_Get_InjectedValue(&ADC_IV, ADC_INJECTED_RANK_2);
@@ -86,6 +92,9 @@ static void Timer_Foc_CaculateCallback(Timer_t *timer){
         Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp1, TIM_CHANNEL_1);
         Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp2, TIM_CHANNEL_2);
         Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp3, TIM_CHANNEL_3);
+
+        /* 启动下一次转换 */
+        My_ADC_InjectedStart_IT(&ADC_Current);
     }
 }
 
@@ -106,8 +115,11 @@ void State_Machine_Init(void){
     My_ADC_Channel_Init(&ADC_IV, ADC_1);
     My_ADC_Channel_Init(&ADC_IW, ADC_1);
 
+    /* 初始化ADC转换完成回调函数 */
+    My_ADC_InjectedConvCpltCallback_Register(&ADC_Current, My_ADC_InjectedConvCpltCallback);
+
     /* 初始化ADC注入模式 */
-    My_ADC_InjectedStart(&ADC_Current);
+    My_ADC_InjectedStart_IT(&ADC_Current);
 
     /* 初始化定时器 */
     Timer_Init(&TIM_Global, Timer_6);

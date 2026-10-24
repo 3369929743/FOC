@@ -79,6 +79,25 @@ void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float V_bia
     adc->Current_scale = ADC_VOLTAGE_REF / (current_gain * R_Shunt * ADC_RESOLUTION);
    }
 
+
+/**
+ * @brief  注册ADC规则通道转换完成用户回调
+ * @param  adc: 指向ADC实例结构体的指针
+ * @param  ConvCpltCallback: 用户自定义回调函数指针，规则组转换完成后由HAL中断回调转发调用
+ */
+void My_ADC_ConvCpltCallback_Register(ADC_t* adc, ADC_ConvCpltCallback_t ConvCpltCallback){
+    adc->ConvCpltCallback = ConvCpltCallback;
+}
+
+/**
+ * @brief  注册ADC注入通道转换完成用户回调
+ * @param  adc: 指向ADC实例结构体的指针
+ * @param  InjectedConvCpltCallback: 用户自定义回调函数指针，注入组转换完成后由HAL中断回调转发调用
+ */
+void My_ADC_InjectedConvCpltCallback_Register(ADC_t* adc, ADC_InjectedConvCpltCallback_t InjectedConvCpltCallback){
+    adc->InjectedConvCpltCallback = InjectedConvCpltCallback;
+}
+
 /**
  * @brief  启动ADC常规通道转换及采样
  * @param  adc: 指向ADC实例结构体的指针
@@ -96,6 +115,29 @@ void My_ADC_RegularStart(ADC_t* adc){
  */
 void My_ADC_InjectedStart(ADC_t* adc){
     HAL_ADCEx_InjectedStart(adc->hadc);
+}
+
+/**
+ * @brief  启动ADC常规通道转换及采样（中断模式）
+ * @param  adc: 指向ADC实例结构体的指针
+ * @note   与 My_ADC_RegularStart 不同，此函数使能中断模式。
+ *         常规通道转换完成后触发 ADC 中断，HAL 调用 HAL_ADC_ConvCpltCallback，
+ *         适用于需要在转换完成后立即在中断中处理数据的场景。
+ */
+void My_ADC_RegularStart_IT(ADC_t* adc){
+    HAL_ADC_Start_IT(adc->hadc);
+}
+
+/**
+ * @brief  启动ADC注入通道转换（中断模式）
+ * @param  adc: 指向ADC实例结构体的指针
+ * @note   与 My_ADC_InjectedStart 不同，此函数使能中断模式。
+ *         注入组转换完成后触发 JEOC 中断，HAL 调用 HAL_ADCEx_InjectedConvCpltCallback，
+ *         适用于 FOC 等需要在每次注入序列完成后立即处理数据的场景。
+ *         注意：注入组无连续转换模式，需在回调中重新调用此函数以实现连续触发。
+ */
+void My_ADC_InjectedStart_IT(ADC_t* adc){
+    HAL_ADCEx_InjectedStart_IT(adc->hadc);
 }
 
 /**
@@ -139,4 +181,36 @@ void My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
  */
 void My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
     adc->current = (float)(adc->value - param->V_bias) * param->Current_scale;
+}
+
+/**
+ * @brief  ADC注入通道转换完成HAL回调函数
+ * @param  hadc: ADC_HandleTypeDef指针，指向触发中断的ADC句柄
+ * @note   该函数由HAL库在注入组转换完成中断中自动调用。
+ *         通过硬件句柄反查软件ADC实例，若实例已注册用户回调，
+ *         则转发调用，实现硬件中断到应用层的解耦。
+ */
+void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef *hadc){
+    ADC_t *adc = ADC_GetInstance(hadc);
+    if(adc != NULL){
+        if(adc->InjectedConvCpltCallback != NULL){
+            adc->InjectedConvCpltCallback(adc);
+        }
+    }
+}
+
+/**
+ * @brief  ADC规则通道转换完成HAL回调函数
+ * @param  hadc: ADC_HandleTypeDef指针，指向触发中断的ADC句柄
+ * @note   该函数由HAL库在规则组转换完成中断中自动调用。
+ *         通过硬件句柄反查软件ADC实例，若实例已注册用户回调，
+ *         则转发调用，实现硬件中断到应用层的解耦。
+ */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
+    ADC_t *adc = ADC_GetInstance(hadc);
+    if(adc != NULL){
+        if(adc->ConvCpltCallback != NULL){
+            adc->ConvCpltCallback(adc);
+        }
+    }
 }
