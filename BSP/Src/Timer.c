@@ -97,6 +97,12 @@ uint8_t Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num)
     return 0;
 }
 
+void Timer_PWM_Start(Timer_t *timer, uint32_t Channel){
+    if(timer == NULL || timer->htim == NULL) return;
+    timer->Channel = Channel;
+    HAL_TIM_PWM_Start(timer->htim, timer->Channel);
+}
+
 /**
  * @brief  启动定时器的完整PWM模式，包括正向和互补输出
  * @param  timer: 指向定时器结构体的指针

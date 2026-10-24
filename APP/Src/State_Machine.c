@@ -68,12 +68,6 @@ static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
     }
 }
 
-static void Timer_Foc_CaculateCallback(Timer_t *timer){
-    if(timer == &TIM_FOC){
-
-    }
-}
-
 /* ====================== ADC回调函数 ====================== */
 void My_ADC_InjectedConvCpltCallback(ADC_t* adc){
     if(adc == &ADC_Current){
@@ -128,8 +122,8 @@ void State_Machine_Init(void){
     Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_1);
     Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_2);
     Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_3);
+    Timer_PWM_Start(&TIM_FOC, TIM_CHANNEL_4);
     Timer_Start_Base_IT(&TIM_Global, Timer_Global_PeriodElapsedCallback);
-    Timer_Start_PulseFinished_IT(&TIM_FOC, TIM_CHANNEL_4, Timer_Foc_CaculateCallback);
 
     /* 初始化软定时器 */
     SoftTimer_Init(&Soft_Timer_FOC, SOFTTIMER_MODE_PERIODIC, 1);

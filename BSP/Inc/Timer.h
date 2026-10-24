@@ -31,6 +31,7 @@ typedef struct Timer_Struct{
 } Timer_t;
 
 uint8_t Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num);
+void Timer_PWM_Start(Timer_t *timer, uint32_t Channel);
 void Timer_Comple_PWM_Start(Timer_t *timer, uint32_t Channel);
 void Timer_Start_Base_IT(Timer_t* timer, void(*Callback)(Timer_t *timer));
 void Timer_Start_PWM_IT(Timer_t* timer, uint32_t Channel, void(*Callback)(Timer_t *timer));
