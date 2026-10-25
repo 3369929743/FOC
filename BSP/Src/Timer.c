@@ -39,7 +39,10 @@
  *         - 多个软件定时器可复用同一个硬件TIM，但需合理配置周期
  ******************************************************************************
  */
+
 #include "Timer.h"
+
+#ifdef TIMER_MODULE_ENABLED
 
 #define X(Index, Instance) extern __weak TIM_HandleTypeDef htim##Index;
 TIMER_LIST
@@ -227,3 +230,5 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
         }
     }
 }
+
+#endif

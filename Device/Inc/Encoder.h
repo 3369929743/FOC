@@ -5,8 +5,9 @@
 
 typedef uint32_t (* Encoder_Read_Data_t)(void);
 
-typedef struct
+typedef struct Encoder_Struct
 {
+    /* FOC需要的编码器成员 */
     uint32_t Encoder_Res;               // 编码器分辨率
     uint32_t Motor_Pn;                  // 电机极数
     uint32_t Encoder_Dir;               // 编码器方向
@@ -22,5 +23,6 @@ typedef struct
 void Encoder_Param_Init(Encoder_t *encoder, uint32_t Encoder_Res, uint32_t Motor_Pn, uint32_t Encoder_Dir, uint32_t Encoder_Error);
 void Encoder_Read_Data_Register(Encoder_t *encoder, Encoder_Read_Data_t Read_Data);
 float Encoder_Update(Encoder_t *encoder);
+uint32_t Encoder_Get_Count(Encoder_t *encoder);
 
 #endif

@@ -113,13 +113,13 @@
   *        5. TxBuffer_Size默认为64字节，发送数据超出此长度会被截断
   ******************************************************************************
   */
-#ifdef HAL_UART_MODULE_ENABLED
-
 #include "Serial.h"
 #include "string.h"
 #include <stdint.h>
 #include "stdarg.h"
 #include "stdio.h"
+
+#ifdef SERIAL_MODULE_ENABLED
 
 #define X(Index, Instance) extern __weak UART_HandleTypeDef huart##Index;
 SERIAL_LIST
@@ -190,10 +190,14 @@ uint8_t Serial_Init(Serial_t *Serial, Serial_Num_e Serial_Num)
  * @param Size 要发送的数据长度（字节数）
  * @note 该函数将isBusy标志置1，并调用HAL库中断发送函数启动数据传输
  */
-static inline void Serial_Start_Send(Serial_t *Serial, uint16_t Size)
+static inline void Serial_Start_IT_Send(Serial_t *Serial, uint16_t Size)
 {
     Serial->isBusy = 1;
     HAL_UART_Transmit_IT(Serial->huart, Serial->TxBuffer, Size);
+}
+
+void Serial_SendBytes(Serial_t *Serial, uint8_t *pData, uint16_t Size, uint32_t Timeout){
+    HAL_UART_Transmit(Serial->huart, pData, Size, Timeout);
 }
 
 /**
@@ -202,12 +206,13 @@ static inline void Serial_Start_Send(Serial_t *Serial, uint16_t Size)
  * @param Byte 待发送的字节数据
  * @note 发送前会等待串口空闲，然后将字节复制到TxBuffer并通过中断方式发送
  */
-void Serial_SendByte(Serial_t *Serial, uint8_t Byte)
+void Serial_IT_SendByte(Serial_t *Serial, uint8_t Byte)
 {
     if(Serial == NULL) return;
-    while(Serial->isBusy);
+    uint32_t Timeout = 10000;
+    while(Serial->isBusy && Timeout--);
     memcpy(Serial->TxBuffer, &Byte, 1);
-    Serial_Start_Send(Serial, 1);
+    Serial_Start_IT_Send(Serial, 1);
 }
 
 /**
@@ -218,7 +223,7 @@ void Serial_SendByte(Serial_t *Serial, uint8_t Byte)
  * @return uint8_t 返回0表示发送成功，返回1表示数据长度超出缓冲区大小限制
  * @note 数据会先复制到内部TxBuffer，然后通过中断方式发送；发送时会将isBusy标志置1
  */
-uint8_t Serial_SendArray(Serial_t *Serial, uint8_t *Array, uint16_t Size)
+uint8_t Serial_IT_SendArray(Serial_t *Serial, uint8_t *Array, uint16_t Size)
 {
     if(Serial == NULL) return 1;
     if(Size > TxBuffer_Size)
@@ -226,9 +231,10 @@ uint8_t Serial_SendArray(Serial_t *Serial, uint8_t *Array, uint16_t Size)
         Size = TxBuffer_Size;
         return 1;
     }
-    while(Serial->isBusy);
+    uint32_t Timeout = 10000;
+    while(Serial->isBusy && Timeout--);
     memcpy(Serial->TxBuffer, Array, Size);
-    Serial_Start_Send(Serial, Size);
+    Serial_Start_IT_Send(Serial, Size);
     return 0;
 }
 
@@ -239,7 +245,7 @@ uint8_t Serial_SendArray(Serial_t *Serial, uint8_t *Array, uint16_t Size)
  * @return uint8_t 返回0表示发送成功，返回1表示字符串长度超出缓冲区大小限制
  * @note 数据会先复制到内部TxBuffer，然后通过中断方式发送；发送时会将isBusy标志置1
  */
-uint8_t Serial_SendString(Serial_t *Serial, char *String)
+uint8_t Serial_IT_SendString(Serial_t *Serial, char *String)
 {
     if(Serial == NULL) return 1;
     uint16_t Size = strlen(String);
@@ -247,9 +253,10 @@ uint8_t Serial_SendString(Serial_t *Serial, char *String)
     {
         return 1;
     }
-    while(Serial->isBusy);
+    uint32_t Timeout = 10000;
+    while(Serial->isBusy && Timeout--);
     memcpy(Serial->TxBuffer, String, Size);
-    Serial_Start_Send(Serial, Size);
+    Serial_Start_IT_Send(Serial, Size);
     return 0;
 }
 
@@ -261,10 +268,11 @@ uint8_t Serial_SendString(Serial_t *Serial, char *String)
  * @note 发送前会等待串口空闲，使用vsnprintf将格式化数据写入TxBuffer，
  *       若格式化后的数据长度超出缓冲区大小则截断，然后通过中断方式发送
  */
-void Serial_Printf(Serial_t *Serial, char *Format, ...)
+void Serial_IT_Printf(Serial_t *Serial, char *Format, ...)
 {
     if(Serial == NULL) return;
-    while(Serial->isBusy);
+    uint32_t Timeout = 10000;
+    while(Serial->isBusy && Timeout--);
     va_list Args;
     va_start(Args, Format);
     uint16_t Size = vsnprintf((char *)Serial->TxBuffer, (int)TxBuffer_Size, Format, Args);
@@ -272,7 +280,7 @@ void Serial_Printf(Serial_t *Serial, char *Format, ...)
     {
         Size = TxBuffer_Size - 1;
     }
-    Serial_Start_Send(Serial, Size);
+    Serial_Start_IT_Send(Serial, Size);
     va_end(Args);
 }
 
@@ -391,7 +399,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   }
 }
 
-/**
+/**s
  * @brief UART接收事件回调函数（HAL库空闲中断回调）
  * @param huart UART句柄指针
  * @param Size 实际接收到的数据长度（字节数）

@@ -47,6 +47,9 @@ uint8_t My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num);
 void My_ADC_Channel_Init(ADC_Channel_t* adc, ADC_Num_e adc_num);
 void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float V_bias, float R_Shunt);
 
+/* ===================ADC自校准=================== */
+void My_ADC_Calibration_Start(ADC_t* adc, uint32_t SingleDiff);
+
 /* ===================ADC回调函数注册=================== */
 void My_ADC_ConvCpltCallback_Register(ADC_t* adc, ADC_ConvCpltCallback_t ConvCpltCallback);
 void My_ADC_InjectedConvCpltCallback_Register(ADC_t* adc, ADC_InjectedConvCpltCallback_t InjectedConvCpltCallback);

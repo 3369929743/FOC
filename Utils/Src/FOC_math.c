@@ -110,9 +110,9 @@ void FOC_Voltage_Update(FOC_t *foc){
 /**
  * @brief V/f控制参数初始化：设置加速度、目标速度、死区阈值及FOC时间步长
  * @param vf V/f控制结构体指针
- * @param Acc 加速度(rpm/s)
- * @param Target_Speed 目标速度(rpm)
- * @param Speed_Dead 死区阈值(rpm)，用于抑制稳态抖振
+ * @param Acc 加速度
+ * @param Target_Speed 目标速度
+ * @param Speed_Dead 死区阈值，用于抑制稳态抖振
  * @param FOC_Ts FOC控制周期(s)
  */
 void FOC_Vf_Control_Param_Init(Vf_Control_t *vf, float Acc, float Target_Speed, float Speed_Dead, float FOC_Ts){
@@ -125,7 +125,7 @@ void FOC_Vf_Control_Param_Init(Vf_Control_t *vf, float Acc, float Target_Speed, 
 /**
  * @brief 设置V/f控制的加速度
  * @param vf V/f控制结构体指针
- * @param Acc 加速度(rpm/s)
+ * @param Acc 加速度
  */
 void Foc_Vf_Control_SetAcc(Vf_Control_t *vf, float Acc){
     vf->Acc = Acc;
@@ -134,7 +134,7 @@ void Foc_Vf_Control_SetAcc(Vf_Control_t *vf, float Acc){
 /**
  * @brief 设置V/f控制的目标速度
  * @param vf V/f控制结构体指针
- * @param Target_Speed 目标速度(rpm)
+ * @param Target_Speed 目标速度
  */
 void Foc_Vf_Control_SetTarget_Speed(Vf_Control_t *vf, float Target_Speed){
     vf->Target_Speed = Target_Speed;
@@ -143,7 +143,7 @@ void Foc_Vf_Control_SetTarget_Speed(Vf_Control_t *vf, float Target_Speed){
 /**
  * @brief 设置V/f控制的速度死区阈值
  * @param vf V/f控制结构体指针
- * @param Speed_Dead 死区阈值(rpm)，用于抑制稳态抖振
+ * @param Speed_Dead 死区阈值，用于抑制稳态抖振
  */
 void Foc_Vf_Control_SetSpeed_Dead(Vf_Control_t *vf, float Speed_Dead){
     vf->Speed_Dead = Speed_Dead;
@@ -193,8 +193,8 @@ void Foc_Vf_Control_Update(Vf_Control_t *vf){
     vf->Theta += vf->Speed * vf->FOC_Ts;
         
     /*  角度积分项归一化 */
-    if(vf->Theta > __2PI) vf->Theta -= __2PI;
-    else if(vf->Theta < 0) vf->Theta += __2PI;
+    while(vf->Theta > __2PI) vf->Theta -= __2PI;
+    while(vf->Theta < 0) vf->Theta += __2PI;
 }
 
 /**

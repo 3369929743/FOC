@@ -2,6 +2,10 @@
 #define __SERIAL_H__
 
 #include "main.h"
+
+#define SERIAL_MODULE_ENABLED 1
+// #define SERIAL_MODULE_ENABLED 0
+
 #include <stdint.h>
 
 #define TxBuffer_Size 64
@@ -37,10 +41,11 @@ typedef struct Serial_Struct{
 } Serial_t;
 
 uint8_t Serial_Init(Serial_t *Serial, Serial_Num_e Serial_Num);
-void Serial_SendByte(Serial_t *Serial, uint8_t Byte);
-uint8_t Serial_SendArray(Serial_t *Serial, uint8_t *Array, uint16_t Size);
-uint8_t Serial_SendString(Serial_t *Serial, char *String);
-void Serial_Printf(Serial_t *Serial, char *Format, ...);
+void Serial_SendBytes(Serial_t *Serial, uint8_t *pData, uint16_t Size, uint32_t Timeout);
+void Serial_IT_SendByte(Serial_t *Serial, uint8_t Byte);
+uint8_t Serial_IT_SendArray(Serial_t *Serial, uint8_t *Array, uint16_t Size);
+uint8_t Serial_IT_SendString(Serial_t *Serial, char *String);
+void Serial_IT_Printf(Serial_t *Serial, char *Format, ...);
 void Serial_SetRxCallback(Serial_t *Serial, void (*RxCallback)(struct Serial_Struct *Serial, uint16_t Size));
 void Serial_SetTxCallback(Serial_t *Serial, void (*TxCallback)(struct Serial_Struct *Serial));
 void Serial_SetRxBuffer(Serial_t *Serial, uint8_t *Buffer, uint16_t Size);

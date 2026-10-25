@@ -1,4 +1,5 @@
 #include "MyADC.h"
+#include <stdint.h>
 
 #define ADC_RESOLUTION 4096        //ADC分辨率
 #define ADC_VOLTAGE_REF 3.3f        //ADC参考电压，单位：V
@@ -79,6 +80,19 @@ void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float V_bia
     adc->Current_scale = ADC_VOLTAGE_REF / (current_gain * R_Shunt * ADC_RESOLUTION);
    }
 
+
+/**
+ * @brief  启动ADC自校准
+ * @param  adc: 指向ADC实例结构体的指针
+ * @param  SingleDiff: 校准模式选择，ADC_SINGLE_ENDED（单端）或 ADC_DIFFERENTIAL_ENDED（差分）
+ * @retval 无
+ * @note   STM32G4系列ADC内置自校准功能，通过校准内部电容阵列来补偿失调误差。
+ *         应在 ADC 初始化完成后、启动转换前调用，否则转换结果可能存在固定偏置。
+ *         校准期间ADC自动完成采样和误差计算，无需外部输入。
+ */
+void My_ADC_Calibration_Start(ADC_t* adc, uint32_t SingleDiff){
+    HAL_ADCEx_Calibration_Start(adc->hadc, SingleDiff);
+}
 
 /**
  * @brief  注册ADC规则通道转换完成用户回调

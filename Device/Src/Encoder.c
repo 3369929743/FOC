@@ -50,3 +50,7 @@ float Encoder_Update(Encoder_t *encoder){
     }
     return encoder->Theta_e;
 }
+
+uint32_t Encoder_Get_Count(Encoder_t *encoder){
+    return encoder->Pulse_Count;
+}

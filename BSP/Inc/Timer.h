@@ -3,6 +3,9 @@
 
 #include "main.h"
 
+#define TIMER_MODULE_ENABLED 1
+// #define TIMER_MODULE_ENABLED 0
+
 #define TIMER_LIST \
     X(1, TIM1)     \
     X(2, TIM2)     \
