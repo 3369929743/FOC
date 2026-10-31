@@ -66,14 +66,12 @@ void My_ADC_Channel_Init(ADC_Channel_t* adc, ADC_Num_e adc_num){
  * @brief  初始化ADC板级参数并预计算缩放因子
  * @param  adc: 指向ADC_BSP_Param_t结构体的指针，用于存储参数
  * @param  current_gain: 运放增益（V/V）
- * @param  V_bias: 零电流时的ADC偏置计数值（原始ADC值），例如12bit中点=2048
  * @param  R_Shunt: 采样电阻阻值，单位：Ω
  * @note   预计算Voltage_scale = V_ref / 4096，Current_scale = V_ref / (4096 × gain × R_shunt)，
  *         从而在中断中仅需 (value - V_bias) × scale 即可得到结果，避免重复浮点除法。
  */
-void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float V_bias, float R_Shunt){
+void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float R_Shunt){
     adc->current_gain = current_gain;
-    adc->V_bias = V_bias;
     adc->R_Shunt = R_Shunt;
 
     adc->Voltage_scale = ADC_VOLTAGE_REF / ADC_RESOLUTION;
@@ -92,6 +90,18 @@ void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float V_bia
  */
 void My_ADC_Calibration_Start(ADC_t* adc, uint32_t SingleDiff){
     HAL_ADCEx_Calibration_Start(adc->hadc, SingleDiff);
+}
+
+uint8_t My_ADC_Bias_Calibreation_Start(ADC_Channel_t* self){
+    self->Calibration_Sum += self->Value;
+    self->Calibration_Count++;
+    if(self->Calibration_Count >= 1024){
+        self->Value_Bias = (float)self->Calibration_Sum / (float)self->Calibration_Count;
+        self->Calibration_Count = 0;
+        self->Calibration_Sum = 0;
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -161,7 +171,7 @@ void My_ADC_InjectedStart_IT(ADC_t* adc){
  *         调用前需确保已通过 My_ADC_RegularStart() 启动转换。
  */
 void My_ADC_Get_RegularValue(ADC_Channel_t* adc){
-    adc->value = HAL_ADC_GetValue(ADC_Map[adc->adc_num]);
+    adc->Value = HAL_ADC_GetValue(ADC_Map[adc->adc_num]);
 }
 
 /**
@@ -172,7 +182,7 @@ void My_ADC_Get_RegularValue(ADC_Channel_t* adc){
  *         读取的原始ADC计数值存入 adc->value，后续通过 My_ADC_Calculate_Current 换算为实际电流。
  */
 void My_ADC_Get_InjectedValue(ADC_Channel_t* adc, uint32_t InjectedRank){
-    adc->value = HAL_ADCEx_InjectedGetValue(ADC_Map[adc->adc_num], InjectedRank);
+    adc->Value = HAL_ADCEx_InjectedGetValue(ADC_Map[adc->adc_num], InjectedRank);
 }
 
 /**
@@ -183,18 +193,18 @@ void My_ADC_Get_InjectedValue(ADC_Channel_t* adc, uint32_t InjectedRank){
  *         零电流时结果为0，正/负分别对应正/反向电流。
  */
 void My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
-    adc->voltage = (float)(adc->value - param->V_bias) * param->Voltage_scale;
+    adc->Voltage = ((float)adc->Value - adc->Value_Bias) * param->Voltage_scale;
 }
 
 /**
  * @brief  将ADC原始值转换为相电流
- * @param  adc: 指向ADC_Channel_t结构体的指针，读取 adc->value 并写入 adc->current
+ * @param  adc: 指向ADC_Channel_t结构体的指针，读取 adc->Value 并写入 adc->current
  * @param  param: 指向ADC_BSP_Param_t的指针，提供偏置计数值 V_bias 和电流缩放因子 Current_scale
  * @note   结果 = (value - V_bias) × Current_scale，单位：A。
  *         Current_scale 已在 My_ADC_BSP_Param_Init 中预计算，此处仅需一次减法+乘法。
  */
 void My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
-    adc->current = (float)(adc->value - param->V_bias) * param->Current_scale;
+    adc->Current = ((float)adc->Value - adc->Value_Bias) * param->Current_scale;
 }
 
 /**

@@ -10,6 +10,7 @@
 #include "Encoder.h"
 #include "MyADC.h"
 #include "Serial.h"
+#include "Key.h"
 
 /* ====================== 实现功能需要的头文件 ====================== */
 #include "Screen_Step_Mode.h"
@@ -31,6 +32,13 @@ uint32_t MT6701_ReadData(void)
     return ((rx[0] << 6) | (rx[1] >> 2)) & 0x3FFF;
 }
 
+/* ====================== 电机状态 ====================== */
+typedef enum{
+    STATE_IDLE = 0,
+    STATE_CALIBRATION,
+    STATE_FOC_RUNNING,
+} Motor_State_e;
+
 /* ====================== 全局变量 ====================== */
 
 
@@ -46,7 +54,6 @@ static SoftTimer_t Soft_Timer_Encoder_Count_Mode;
 static Vofa_Ch_t ADC_IU_Ch;
 static Vofa_Ch_t ADC_IV_Ch;
 static Vofa_Ch_t ADC_IW_Ch;
-
 
 /*-------------------- 编码器实例 -------------------- */
 static Encoder_t Encoder_Motor;
@@ -70,6 +77,11 @@ static ADC_BSP_Param_t ADC_BSP_Param;
 /*-------------------- 串口实例 -------------------- */
 static Serial_t Serial_Screen;
 
+/* ====================== 电机状态 ====================== */
+static volatile Motor_State_e Motor_State = STATE_IDLE;
+
+/*-------------------- 按键实例 -------------------- */
+static Key_t Key_1;
 
 /* ====================== 定时器回调函数 ====================== */
 static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
@@ -77,32 +89,73 @@ static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
     if(timer == &TIM_Global){
         SoftTimer_Update(&Soft_Timer_Vofa);
         SoftTimer_Update(&Soft_Timer_Encoder_Count_Mode);
+        Key_Tick(&Key_1, HAL_GPIO_ReadPin(Key_1_GPIO_Port, Key_1_Pin));
     }
 }
 
 /* ====================== ADC回调函数 ====================== */
 void My_ADC_InjectedConvCpltCallback(ADC_t* adc){
     if(adc == &ADC_Current){
-        /* 读取ADC值 */
-        My_ADC_Get_InjectedValue(&ADC_IU, ADC_INJECTED_RANK_1);
-        My_ADC_Get_InjectedValue(&ADC_IV, ADC_INJECTED_RANK_2);
-        My_ADC_Get_InjectedValue(&ADC_IW, ADC_INJECTED_RANK_3);
+        switch(Motor_State){
+            case STATE_IDLE:
+                break;
+            case STATE_CALIBRATION:
+                /* 读取ADC值 */
+                My_ADC_Get_InjectedValue(&ADC_IU, ADC_INJECTED_RANK_1);
+                My_ADC_Get_InjectedValue(&ADC_IV, ADC_INJECTED_RANK_2);
+                My_ADC_Get_InjectedValue(&ADC_IW, ADC_INJECTED_RANK_3);
 
-        /* 计算电流 */
-        My_ADC_Calculate_Current(&ADC_IU, &ADC_BSP_Param);
-        My_ADC_Calculate_Current(&ADC_IV, &ADC_BSP_Param);
-        My_ADC_Calculate_Current(&ADC_IW, &ADC_BSP_Param);
+                uint8_t Calib_u, Calib_v, Calib_w;
+                Calib_u = My_ADC_Bias_Calibreation_Start(&ADC_IU);
+                Calib_v = My_ADC_Bias_Calibreation_Start(&ADC_IV);
+                Calib_w = My_ADC_Bias_Calibreation_Start(&ADC_IW);
+                if(Calib_u && Calib_v && Calib_w){
+                    Motor_State = STATE_FOC_RUNNING;
+                }else{
+                    Motor_State = STATE_CALIBRATION;
+                }
+                break;
+            case STATE_FOC_RUNNING:
+                /* 读取ADC值 */
+                My_ADC_Get_InjectedValue(&ADC_IU, ADC_INJECTED_RANK_1);
+                My_ADC_Get_InjectedValue(&ADC_IV, ADC_INJECTED_RANK_2);
+                My_ADC_Get_InjectedValue(&ADC_IW, ADC_INJECTED_RANK_3);
 
-        /* 进行FOC计算 */
-        FOC_Eocoder_Update(&Foc_Motor, Encoder_Update(&Encoder_Motor));
+                /* 计算电流 */
+                My_ADC_Calculate_Current(&ADC_IU, &ADC_BSP_Param);
+                My_ADC_Calculate_Current(&ADC_IV, &ADC_BSP_Param);
+                My_ADC_Calculate_Current(&ADC_IW, &ADC_BSP_Param);
 
-        /* 发送编码器计数值 */
-        Screen_Step_Mode_Send_Start();
+                // /* 进行FOC计算 */
+                // FOC_Eocoder_Update(&Foc_Motor, Encoder_Update(&Encoder_Motor));
 
-        /* 更新PWM占空比 */
-        // Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp1, TIM_CHANNEL_1);
-        // Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp2, TIM_CHANNEL_2);
-        // Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp3, TIM_CHANNEL_3);
+                // /* 发送编码器计数值 */
+                // Screen_Step_Mode_Send_Start();
+
+                /* 更新PWM占空比 */
+                // Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp1, TIM_CHANNEL_1);
+                // Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp2, TIM_CHANNEL_2);
+                // Timer_Set_CompareValue(&TIM_FOC, (uint32_t)Foc_Motor.Tcmp3, TIM_CHANNEL_3);
+                break;
+        }
+    }
+}
+
+/*-------------------- 按键事件函数 -------------------- */
+void Key_Global_Event_Callback(Key_t *Key, Key_Event_e Event){
+    if(Key == NULL) return;
+    if(Key == &Key_1){
+        switch (Event) {
+            case KEY_EVENT_ONCE_PRESS:
+                Motor_State = STATE_CALIBRATION;
+                break;
+            case KEY_EVENT_DOUBLE_PRESS:
+                break;
+            case KEY_EVENT_LONG_PRESS:
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -121,7 +174,7 @@ void State_Machine_Init(void){
     Screen_Step_Mode_Init(&Encoder_Motor);
 
     /* 初始化ADC参数 */
-    My_ADC_BSP_Param_Init(&ADC_BSP_Param, ADC_CURRENT_GAIN, ADC_BIAS, ADC_SHUNT_RES);
+    My_ADC_BSP_Param_Init(&ADC_BSP_Param, ADC_CURRENT_GAIN, ADC_SHUNT_RES);
     My_ADC_Init(&ADC_Current, ADC_1);
     My_ADC_Channel_Init(&ADC_IU, ADC_1);
     My_ADC_Channel_Init(&ADC_IV, ADC_1);
@@ -140,9 +193,9 @@ void State_Machine_Init(void){
     Timer_Init(&TIM_Global, Timer_6);
     Timer_Init(&TIM_FOC, Timer_1);
     Timer_Set_CompareValue(&TIM_FOC, (uint32_t)FOC_PWM_TRIGGER_CCR, TIM_CHANNEL_4);
-    Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_1);
-    Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_2);
-    Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_3);
+    // Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_1);
+    // Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_2);
+    // Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_3);
     Timer_PWM_Start(&TIM_FOC, TIM_CHANNEL_4);
     Timer_Start_Base_IT(&TIM_Global, Timer_Global_PeriodElapsedCallback);
 
@@ -152,11 +205,18 @@ void State_Machine_Init(void){
     SoftTimer_Init(&Soft_Timer_Encoder_Count_Mode, SOFTTIMER_MODE_PERIODIC, 20);
     SoftTimer_Start(&Soft_Timer_Encoder_Count_Mode);
 
+    /* 初始化按键 */
+    Key_Init(&Key_1, KEY_LEVEL_LOW);
+    Key_SetClickTimeout(&Key_1, 0);
+
+    /* 注册按键事件回调函数 */
+    Key_SetEventCallback(&Key_1, Key_Global_Event_Callback);
+
     /* 初始化Vofa通道 */
     Vofa_Init(CDC_Transmit_FS);
 
     Vofa_Ch_Register(3,&ADC_IU_Ch, &ADC_IV_Ch, &ADC_IW_Ch);
-    Vofa_Data_Register(3, &ADC_IU.current, &ADC_IV.current, &ADC_IW.current);
+    Vofa_Data_Register(3, &ADC_IU.Current, &ADC_IV.Current, &ADC_IW.Current);
 
     /* 初始化串口 */
     Serial_Init(&Serial_Screen, Serial_3);
@@ -172,4 +232,7 @@ void State_Machine_Loop(void){
     if(SoftTimer_Trigger(&Soft_Timer_Encoder_Count_Mode)){
         Screen_Step_Mode_Send(&Serial_Screen, &Encoder_Motor);
     }
+
+    /* 管理按键事件 */
+    Key_Trigger_Event(&Key_1);
 }

@@ -202,7 +202,7 @@ void Foc_Vf_Control_Update(Vf_Control_t *vf){
  * @param foc FOC对象指针
  * @note  先更新V/f控制得到电角度Theta，再执行反Park→反Clarke→SVPWM生成PWM比较值
  */
-void FOC_Update(FOC_t *foc){
+void FOC_Vf_Update(FOC_t *foc){
     Foc_Vf_Control_Update(&foc->Vf_Param);
     foc->Theta = foc->Vf_Param.Theta;
     FOC_Voltage_Update(foc);
@@ -219,3 +219,4 @@ void FOC_Eocoder_Update(FOC_t *foc, float Theta_e){
     foc->Theta = Theta_e;
     FOC_Voltage_Update(foc);
 }
+

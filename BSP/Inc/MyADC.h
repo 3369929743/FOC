@@ -19,18 +19,23 @@ typedef enum{
 } ADC_Num_e;
 
 typedef struct ADC_Struct{
-    ADC_HandleTypeDef *hadc;
+    ADC_HandleTypeDef *hadc;                                         //ADC句柄
 
-    ADC_ConvCpltCallback_t ConvCpltCallback;
-    ADC_InjectedConvCpltCallback_t InjectedConvCpltCallback;
+    ADC_ConvCpltCallback_t ConvCpltCallback;                         //规则组转换完成回调函数指针
+    ADC_InjectedConvCpltCallback_t InjectedConvCpltCallback;         //注入组转换完成回调函数指针
 }ADC_t;
 
 typedef struct{
-    ADC_Num_e adc_num;
+    ADC_Num_e adc_num;                                               //ADC实例编号
 
-    uint32_t value;
-    float voltage;
-    float current;
+    uint32_t Value;                                                  //ADC转换值，32位无符号整数
+
+    uint32_t Calibration_Sum;                                        //校准总和
+    uint32_t Calibration_Count;                                      //校准次数
+    float Value_Bias;                                                //ADC转换值偏置，用于校准
+
+    float Voltage;                                                   //电压值，单位：伏特
+    float Current;                                                   //电流值，单位：安培
 }ADC_Channel_t;
 
 typedef struct{
@@ -45,10 +50,13 @@ typedef struct{
 /* ===================ADC实例初始化=================== */
 uint8_t My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num);
 void My_ADC_Channel_Init(ADC_Channel_t* adc, ADC_Num_e adc_num);
-void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float V_bias, float R_Shunt);
+void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float R_Shunt);
 
 /* ===================ADC自校准=================== */
 void My_ADC_Calibration_Start(ADC_t* adc, uint32_t SingleDiff);
+
+/* ===================ADC手动偏置校准=================== */
+uint8_t My_ADC_Bias_Calibreation_Start(ADC_Channel_t* self);
 
 /* ===================ADC回调函数注册=================== */
 void My_ADC_ConvCpltCallback_Register(ADC_t* adc, ADC_ConvCpltCallback_t ConvCpltCallback);

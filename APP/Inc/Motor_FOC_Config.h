@@ -20,7 +20,6 @@
 #define ENCODER_ERROR 12498                             //编码器零点误差
 
 /*===================== ADC参数 ====================== */
-#define ADC_BIAS 2048                                   //ADC偏置电压，单位：V
 #define ADC_CURRENT_GAIN 20                             //运放增益
 #define ADC_SHUNT_RES 0.001f                            // 采样电阻，单位：Ω
 
