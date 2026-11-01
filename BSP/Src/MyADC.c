@@ -18,6 +18,11 @@ static ADC_HandleTypeDef* const ADC_Map[] = {
 
 #define ADC_MAX_NUM (sizeof(ADC_Map) / sizeof(ADC_Map[0]))
 
+typedef enum{
+    ADC_OK = 0x0U,
+    ADC_ERROR = 0x1U,
+}ADC_Status_e;
+
 static ADC_t *ADC_Instance[ADC_MAX_NUM] = {NULL};
 
 /**
@@ -38,19 +43,37 @@ static inline ADC_t* ADC_GetInstance(ADC_HandleTypeDef* hadc)
 }
 
 /**
+ * @brief  校验ADC编号是否在已注册的ADC列表中
+ * @param  adc_num ADC枚举编号
+ * @retval true  ADC编号有效
+ * @retval false ADC编号无效
+ * @note   通过X宏展开ADC_LIST，将每个已定义的ADC枚举值生成case分支，
+ *         命中则返回true，否则走default返回false
+ */
+static inline bool ADC_IsValid(ADC_Num_e adc_num){
+    switch (adc_num) {
+    #define X(Index, Instance) case ADC_##Index: return true;
+    ADC_LIST
+    #undef X
+    default:
+        return false;
+    }
+}
+
+/**
  * @brief  初始化ADC实例，建立软件ADC与硬件ADC句柄的映射关系
  * @param  adc: 指向ADC实例结构体的指针
  * @param  adc_num: ADC编号枚举值，指定要使用的硬件ADC（ADC_1/ADC_2）
- * @retval uint8_t: 返回0表示初始化成功，返回1表示参数无效（编号越界或为ADC_0）
+ * @retval ADC_Status_e: 返回ADC_OK表示初始化成功，返回ADC_ERROR表示参数无效（编号越界或为ADC_0）
  * @note   该函数将ADC实例注册到全局数组中，便于中断中通过硬件句柄反查实例
  */
-uint8_t My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num){
-    if(adc_num >= ADC_MAX_NUM || adc_num == 0 || ADC_Map[adc_num] == NULL){
-        return 1; 
+ADC_Status_e My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num){
+    if(!ADC_IsValid(adc_num)){
+        return ADC_ERROR;
     }
     ADC_Instance[adc_num] = adc;
     adc->hadc = ADC_Map[adc_num];
-    return 0;
+    return ADC_OK;
 }
 
 /**

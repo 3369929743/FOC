@@ -2,6 +2,7 @@
 #define __TIMER_H__
 
 #include "main.h"
+#include <stdbool.h>
 
 #define TIMER_MODULE_ENABLED 1
 // #define TIMER_MODULE_ENABLED 0
@@ -19,6 +20,12 @@
     X(17, TIM17)   
 
 typedef enum{
+    TIMER_OK = 0x0U,
+    TIMER_ERROR = 0x1U,
+}Timer_Status_e;
+
+typedef enum{
+    TIMER_NUM_INVALID = -1,
     #define X(Index, Instance) Timer_##Index = Index,
     TIMER_LIST
     #undef X
@@ -33,7 +40,7 @@ typedef struct Timer_Struct{
     void (*PulseFinishedCallback)(struct Timer_Struct *timer);
 } Timer_t;
 
-uint8_t Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num);
+Timer_Status_e Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num);
 void Timer_PWM_Start(Timer_t *timer, uint32_t Channel);
 void Timer_Comple_PWM_Start(Timer_t *timer, uint32_t Channel);
 void Timer_Start_Base_IT(Timer_t* timer, void(*Callback)(Timer_t *timer));

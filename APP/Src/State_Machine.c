@@ -1,5 +1,7 @@
 /* ====================== 状态机头文件 ====================== */
 #include "State_Machine.h"
+#include "Motor_FOC_Config.h"
+#include "MyADC.h"
 #include "PID.h"
 #include "Timer.h"
 #include "Vofa.h"
@@ -38,16 +40,50 @@ uint32_t MT6701_ReadData(void)
 /*-------------------- PMSM电机实例 -------------------- */
 static PMSM_t PMSM;
 
+/*-------------------- PID配置参数 -------------------- */
+// static PID_Confg_t PID_Id_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
+// static PID_Confg_t PID_Iq_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
+
+static PID_Confg_t PID_Id_Config = {.Kp = 0.628f, .IntMax = 0.0f, .OutMax = 1.2f};
+static PID_Confg_t PID_Iq_Config = {.Kp = 0.628f, .IntMax = 0.0f, .OutMax = 1.2f};
+
+/*-------------------- PMSM电机配置参数 -------------------- */
+static PMSM_Config_t PMSM_Config = {
+    /* 编码器读取函数 */
+    .Read_Data = MT6701_ReadData,
+    /* PID配置参数 */
+    .PID_Id_Config = &PID_Id_Config,
+    .PID_Iq_Config = &PID_Iq_Config,
+    /* 定时器通道配置 */
+    .Timer_Channel_Vu = TIM_CHANNEL_1,
+    .Timer_Channel_Vv = TIM_CHANNEL_2,
+    .Timer_Channel_Vw = TIM_CHANNEL_3,
+    .Timer_Channel_ADC = TIM_CHANNEL_4,
+    .Timer_Cmp_Trigger_ADC = FOC_PWM_TRIGGER_CCR,
+    .Timer_Num = Timer_1,
+    /* ADC参数配置 */
+    .ADC_Num = ADC_1,
+    .ADC_Current_Gain = ADC_CURRENT_GAIN,
+    .ADC_Shunt_Res = ADC_SHUNT_RES,
+    .SingleDiff = ADC_SINGLE_ENDED,
+    /* 编码器参数配置 */
+    .Encoder_Dir = ENCODER_DIR,
+    .Encoder_Res = ENCODER_RES_CALCULATE,
+    .Encoder_Error = ENCODER_ERROR,
+    /* 电机参数配置 */
+    .Motor_Pn = MOTOR_PN,
+    .Ubus = U_BUS,
+    .TARR = ARR_CALCULATE,
+};
+
 /*-------------------- 定时器实例 -------------------- */
 static Timer_t TIM_Global;
-static Timer_t TIM_FOC;
 
 /*-------------------- 软定时器实例 -------------------- */
 static SoftTimer_t Soft_Timer_Vofa;
-static SoftTimer_t Soft_Timer_Encoder_Count_Mode;
 
 /*-------------------- Vofa通道实例 -------------------- */
-
+Vofa_Ch_t ADC_Iu_Ch, ADC_Iv_Ch, ADC_Iw_Ch;
 
 /*-------------------- 串口实例 -------------------- */
 static Serial_t Serial_Screen;
@@ -55,26 +91,11 @@ static Serial_t Serial_Screen;
 /*-------------------- 按键实例 -------------------- */
 static Key_t Key_1;
 
-/*-------------------- PID配置参数 -------------------- */
-// static PID_Confg_t PID_Id_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
-// static PID_Confg_t PID_Iq_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
-
-static PID_Confg_t PID_Id_Config = {0.628f, .IntMax = 0.0f, .OutMax = 1.2f};
-static PID_Confg_t PID_Iq_Config = {0.628f, .IntMax = 0.0f, .OutMax = 1.2f};
-
-void PMSM_PWM_Write(uint32_t u, uint32_t v, uint32_t w){
-    /* 调用PWM写入函数 */
-    Timer_Set_CompareValue(&TIM_FOC, u,TIM_CHANNEL_1);
-    Timer_Set_CompareValue(&TIM_FOC, v,TIM_CHANNEL_2);
-    Timer_Set_CompareValue(&TIM_FOC, w,TIM_CHANNEL_3);
-}
-
 /* ====================== 定时器回调函数 ====================== */
 static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
 {
     if(timer == &TIM_Global){
         SoftTimer_Update(&Soft_Timer_Vofa);
-        SoftTimer_Update(&Soft_Timer_Encoder_Count_Mode);
         Key_Tick(&Key_1, HAL_GPIO_ReadPin(Key_1_GPIO_Port, Key_1_Pin));
     }
 }
@@ -83,9 +104,9 @@ static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
 void My_ADC_InjectedConvCpltCallback(ADC_t* adc){
     if(adc == &PMSM.ADC){
         /* 读取ADC值 */
-        My_ADC_Get_InjectedValue(&PMSM.ADC_IU, ADC_INJECTED_RANK_1);
-        My_ADC_Get_InjectedValue(&PMSM.ADC_IV, ADC_INJECTED_RANK_2);
-        My_ADC_Get_InjectedValue(&PMSM.ADC_IW, ADC_INJECTED_RANK_3);
+        My_ADC_Get_InjectedValue(&PMSM.ADC_IU_Ch, ADC_INJECTED_RANK_1);
+        My_ADC_Get_InjectedValue(&PMSM.ADC_IV_Ch, ADC_INJECTED_RANK_2);
+        My_ADC_Get_InjectedValue(&PMSM.ADC_IW_Ch, ADC_INJECTED_RANK_3);
 
         /* 运行PMSM电机 */
         PMSM_Run(&PMSM);
@@ -116,24 +137,10 @@ void State_Machine_Init(void){
     My_ADC_InjectedConvCpltCallback_Register(&PMSM.ADC, My_ADC_InjectedConvCpltCallback);
 
     /* 初始化PMSM电机 */
-    PMSM_Init(&PMSM, PMSM_PWM_Write, MT6701_ReadData, &PID_Id_Config, &PID_Iq_Config);
+    if(PMSM_Init(&PMSM, &PMSM_Config) != PMSM_OK){
+        Error_Handler();
+    }
     PMSM_IDLE_Mode(&PMSM);
-
-    /* 初始化定时器 */
-    Timer_Init(&TIM_Global, Timer_6);
-    Timer_Init(&TIM_FOC, Timer_1);
-    Timer_Set_CompareValue(&TIM_FOC, (uint32_t)FOC_PWM_TRIGGER_CCR, TIM_CHANNEL_4);
-    Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_1);
-    Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_2);
-    Timer_Comple_PWM_Start(&TIM_FOC, TIM_CHANNEL_3);
-    Timer_PWM_Start(&TIM_FOC, TIM_CHANNEL_4);
-    Timer_Start_Base_IT(&TIM_Global, Timer_Global_PeriodElapsedCallback);
-
-    /* 初始化软定时器 */
-    SoftTimer_Init(&Soft_Timer_Vofa, SOFTTIMER_MODE_PERIODIC, 1);
-    SoftTimer_Start(&Soft_Timer_Vofa);
-    SoftTimer_Init(&Soft_Timer_Encoder_Count_Mode, SOFTTIMER_MODE_PERIODIC, 20);
-    SoftTimer_Start(&Soft_Timer_Encoder_Count_Mode);
 
     /* 初始化按键 */
     Key_Init(&Key_1, KEY_LEVEL_LOW);
@@ -144,19 +151,27 @@ void State_Machine_Init(void){
 
     /* 初始化Vofa通道 */
     Vofa_Init(CDC_Transmit_FS);
+    /* 注册Vofa通道 */
+    Vofa_Ch_Register(3, &ADC_Iu_Ch, &ADC_Iv_Ch, &ADC_Iw_Ch);
+    /* 设置Vofa通道数据 */
+    Vofa_Data_Register(3, &PMSM.Foc.Iu, &PMSM.Foc.Iv, &PMSM.Foc.Iw);
 
     /* 初始化串口 */
     Serial_Init(&Serial_Screen, Serial_3);
+
+    /* 初始化定时器 */
+    Timer_Init(&TIM_Global, Timer_6);
+    Timer_Start_Base_IT(&TIM_Global, Timer_Global_PeriodElapsedCallback);
+
+    /* 初始化软定时器 */
+    SoftTimer_Init(&Soft_Timer_Vofa, SOFTTIMER_MODE_PERIODIC, 1);
+    SoftTimer_Start(&Soft_Timer_Vofa);
 }
 
 void State_Machine_Loop(void){
     /* 管理Vofa的发送 */
     if(SoftTimer_Trigger(&Soft_Timer_Vofa)){
         Vofa_Send();                            
-    }
-
-    /* 管理编码器计数值的发送 */
-    if(SoftTimer_Trigger(&Soft_Timer_Encoder_Count_Mode)){
     }
 
     /* 管理按键事件 */

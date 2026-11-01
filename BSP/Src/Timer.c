@@ -77,18 +77,34 @@ static inline Timer_t* Timer_GetInstance(TIM_HandleTypeDef* htim)
 }
 
 /**
+ * @brief  校验定时器编号是否在已注册的定时器列表中
+ * @param  TIM_Num 定时器枚举编号
+ * @retval true  定时器编号有效
+ * @retval false 定时器编号无效
+ * @note   通过X宏展开TIMER_LIST，将每个已定义的定时器枚举值生成case分支，
+ *         命中则返回true，否则走default返回false
+ */
+static inline bool Timer_IsValid(Timer_Num_e TIM_Num){
+    switch (TIM_Num) {
+    #define X(Index, Instance) case Timer_##Index: return true;
+    TIMER_LIST
+    #undef X
+    default:
+        return false;
+    }
+}
+
+/**
  * @brief  初始化定时器实例，建立软件定时器与硬件定时器的映射关系
  * @param  timer: 指向待初始化的定时器结构体指针
  * @param  TIM_Num: 定时器编号枚举值，指定要使用的硬件定时器
- * @retval uint8_t: 返回0表示初始化成功，返回1表示参数错误（编号越界或为0）
+ * @retval Timer_Status_e: 返回TIMER_OK表示初始化成功，返回TIMER_ERROR表示参数错误（编号越界或为0）
  * @note   该函数会将定时器实例注册到全局数组中，以便中断回调时快速查找
  */
-uint8_t Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num)
+Timer_Status_e Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num)
 {
-    /* 检查定时器编号是否合法：不能为0（保留给NULL），不能超出最大数量 */
-    if(TIM_Num >= TIM_MAX_NUM || TIM_Num == 0 || TIM_Map[TIM_Num] == NULL)
-    {
-        return 1;
+    if(!Timer_IsValid(TIM_Num)){
+        return TIMER_ERROR;
     }
     /* 将当前定时器实例注册到全局映射数组中 */
     Timer_Instance[TIM_Num] = timer;
@@ -97,7 +113,7 @@ uint8_t Timer_Init(Timer_t* timer, Timer_Num_e TIM_Num)
     /* 初始化回调函数指针为空，等待用户通过Timer_Start_IT设置 */
     timer->PeriodElapsedCallback = NULL;
     timer->TriggerCallback = NULL;
-    return 0;
+    return TIMER_OK;
 }
 
 void Timer_PWM_Start(Timer_t *timer, uint32_t Channel){

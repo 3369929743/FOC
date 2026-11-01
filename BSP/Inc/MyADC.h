@@ -2,6 +2,7 @@
 #define __MYADC_H__
 
 #include "main.h"
+#include <stdbool.h>
 
 #define ADC_LIST \
     X(1, ADC1)   \
@@ -13,6 +14,7 @@ typedef void (*ADC_ConvCpltCallback_t)(struct ADC_Struct* adc);
 typedef void (*ADC_InjectedConvCpltCallback_t)(struct ADC_Struct* adc);
 
 typedef enum{
+    ADC_NUM_INVALID = -1,
     #define X(Index, Instance) ADC_##Index = Index,
     ADC_LIST
     #undef X
