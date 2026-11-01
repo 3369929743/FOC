@@ -73,7 +73,7 @@ void My_ADC_Get_RegularValue(ADC_Channel_t* adc);
 void My_ADC_Get_InjectedValue(ADC_Channel_t* adc, uint32_t InjectedRank);
 
 /* ===================ADC电压电流计算=================== */
-void My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param);
-void My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param);
+float My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param);
+float My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param);
 
 #endif

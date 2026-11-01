@@ -43,8 +43,8 @@ void PID_Init(PID_t *PID, PID_Confg_t *Config);
 void PID_Clear(PID_t *PID);
 void PID_Set_Target(PID_t *PID, PID_val Target);
 void PID_Set_Actual(PID_t *PID, PID_val Actual);
-PID_val PID_Get_Output(PID_t *PID);
-PID_val PID_Calculate(PID_t *PID, PID_val Actual);
+PID_val PID_Get_Output(PID_t *PID);                     //获取当前输出，只返回当前输出
+PID_val PID_Calculate(PID_t *PID, PID_val Actual);      //计算当前输出
 void PID_Change_Param(PID_t *PID, float Kp, float Ki, float Kd, float Alpha);
 
 #endif

@@ -85,8 +85,8 @@ void MX_ADC1_Init(void)
   sConfigInjected.ExternalTrigInjecConv = ADC_EXTERNALTRIGINJEC_T1_CC4;
   sConfigInjected.ExternalTrigInjecConvEdge = ADC_EXTERNALTRIGINJECCONV_EDGE_RISING;
   sConfigInjected.InjecOversamplingMode = ENABLE;
-  sConfigInjected.InjecOversampling.Ratio = ADC_OVERSAMPLING_RATIO_16;
-  sConfigInjected.InjecOversampling.RightBitShift = ADC_RIGHTBITSHIFT_4;
+  sConfigInjected.InjecOversampling.Ratio = ADC_OVERSAMPLING_RATIO_4;
+  sConfigInjected.InjecOversampling.RightBitShift = ADC_RIGHTBITSHIFT_2;
   if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();

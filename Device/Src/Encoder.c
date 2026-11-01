@@ -33,7 +33,7 @@ void Encoder_Read_Data_Register(Encoder_t *encoder, Encoder_Read_Data_t Read_Dat
  *        机械角度 Theta = Pulse_Count / Encoder_Res * 2π
  *        电角度 Theta_e = Theta * Motor_Pn
  */
-float Encoder_Update(Encoder_t *encoder){
+void Encoder_Update(Encoder_t *encoder, float* Theta_e){
     uint32_t Temp = encoder->Read_Data();
     if(encoder->Encoder_Dir == 0){                               // 编码器方向为正
         encoder->Pulse_Count = Temp;
@@ -48,7 +48,9 @@ float Encoder_Update(Encoder_t *encoder){
     if(encoder->Theta_e < 0){
         encoder->Theta_e += __2PI;
     }
-    return encoder->Theta_e;
+    if(Theta_e != NULL){
+        *Theta_e = encoder->Theta_e;
+    }
 }
 
 uint32_t Encoder_Get_Count(Encoder_t *encoder){

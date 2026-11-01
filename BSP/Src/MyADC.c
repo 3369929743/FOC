@@ -4,6 +4,8 @@
 #define ADC_RESOLUTION 4096        //ADC分辨率
 #define ADC_VOLTAGE_REF 3.3f        //ADC参考电压，单位：V
 
+#define ADC_SAMPLE_WINDOW 1024    //ADC采样窗口大小，单位：次
+
 #define X(Index, Instance) extern __weak ADC_HandleTypeDef hadc##Index;
 ADC_LIST
 #undef X
@@ -95,8 +97,8 @@ void My_ADC_Calibration_Start(ADC_t* adc, uint32_t SingleDiff){
 uint8_t My_ADC_Bias_Calibreation_Start(ADC_Channel_t* self){
     self->Calibration_Sum += self->Value;
     self->Calibration_Count++;
-    if(self->Calibration_Count >= 1024){
-        self->Value_Bias = (float)self->Calibration_Sum / (float)self->Calibration_Count;
+    if(self->Calibration_Count >= ADC_SAMPLE_WINDOW){
+        self->Value_Bias = (float)self->Calibration_Sum / (float)ADC_SAMPLE_WINDOW;
         self->Calibration_Count = 0;
         self->Calibration_Sum = 0;
         return 1;
@@ -189,22 +191,26 @@ void My_ADC_Get_InjectedValue(ADC_Channel_t* adc, uint32_t InjectedRank){
  * @brief  将ADC原始值转换为差分电压（相对偏置点）
  * @param  adc: 指向ADC_Channel_t结构体的指针，读取 adc->value 并写入 adc->voltage
  * @param  param: 指向ADC_BSP_Param_t的指针，提供偏置计数值 V_bias 和电压缩放因子 Voltage_scale
+ * @return 电压值，单位：V
  * @note   结果 = (value - V_bias) × Voltage_scale，即采样电阻两端的差分电压，单位：V。
  *         零电流时结果为0，正/负分别对应正/反向电流。
  */
-void My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
+float My_ADC_Calculate_Voltage(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
     adc->Voltage = ((float)adc->Value - adc->Value_Bias) * param->Voltage_scale;
+    return adc->Voltage;
 }
 
 /**
  * @brief  将ADC原始值转换为相电流
  * @param  adc: 指向ADC_Channel_t结构体的指针，读取 adc->Value 并写入 adc->current
  * @param  param: 指向ADC_BSP_Param_t的指针，提供偏置计数值 V_bias 和电流缩放因子 Current_scale
+ * @return 计算得到的相电流值，单位：A
  * @note   结果 = (value - V_bias) × Current_scale，单位：A。
  *         Current_scale 已在 My_ADC_BSP_Param_Init 中预计算，此处仅需一次减法+乘法。
  */
-void My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
+float My_ADC_Calculate_Current(ADC_Channel_t* adc, ADC_BSP_Param_t* param){
     adc->Current = ((float)adc->Value - adc->Value_Bias) * param->Current_scale;
+    return adc->Current;
 }
 
 /**
