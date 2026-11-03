@@ -44,8 +44,8 @@ static PMSM_t PMSM;
 // static PID_Confg_t PID_Id_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
 // static PID_Confg_t PID_Iq_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
 
-static PID_Confg_t PID_Id_Config = {.Kp = 0.628f, .IntMax = 0.0f, .OutMax = 1.2f};
-static PID_Confg_t PID_Iq_Config = {.Kp = 0.628f, .IntMax = 0.0f, .OutMax = 1.2f};
+static PID_Confg_t PID_Id_Config = {.Kp = 0.01f, .IntMax = 0.0f, .OutMax = 1.2f};
+static PID_Confg_t PID_Iq_Config = {.Kp = 0.01f, .IntMax = 0.0f, .OutMax = 1.2f};
 
 /*-------------------- PMSM电机配置参数 -------------------- */
 static PMSM_Config_t PMSM_Config = {
@@ -92,6 +92,7 @@ static Serial_t Serial_Screen;
 
 /*-------------------- 按键实例 -------------------- */
 static Key_t Key_1;
+static Key_t Key_2;
 
 /* ====================== 定时器回调函数 ====================== */
 static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
@@ -170,6 +171,8 @@ void State_Machine_Init(void){
     /* 初始化软定时器 */
     SoftTimer_Init(&Soft_Timer_Vofa, SOFTTIMER_MODE_PERIODIC, 1);
     SoftTimer_Start(&Soft_Timer_Vofa);
+
+    // PID_Set_Target(&PMSM.PID_Iq, 0.1f);
 }
 
 void State_Machine_Loop(void){

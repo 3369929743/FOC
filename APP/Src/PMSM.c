@@ -158,9 +158,9 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     /* Clarke + Park 正向变换，将三相静止坐标系电流变换为旋转坐标系 Id、Iq */
     FOC_Conv_Update(&self->Foc);
 
-    // /* 更新Vq和Vd,电流PI闭环 */  
-    // self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq);
-    // self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id);
+    /* 更新Vq和Vd,电流PI闭环 */  
+    self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq);
+    self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id);
 
     FOC_Rev_Conv_Update(&self->Foc);
 
