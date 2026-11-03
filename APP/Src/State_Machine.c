@@ -106,9 +106,9 @@ static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
 void My_ADC_InjectedConvCpltCallback(ADC_t* adc){
     if(adc == &PMSM.ADC){
         /* 读取ADC值 */
-        My_ADC_Get_InjectedValue(&PMSM.ADC_IU_Ch, ADC_INJECTED_RANK_1);
+        My_ADC_Get_InjectedValue(&PMSM.ADC_IU_Ch, ADC_INJECTED_RANK_3);
         My_ADC_Get_InjectedValue(&PMSM.ADC_IV_Ch, ADC_INJECTED_RANK_2);
-        My_ADC_Get_InjectedValue(&PMSM.ADC_IW_Ch, ADC_INJECTED_RANK_3);
+        My_ADC_Get_InjectedValue(&PMSM.ADC_IW_Ch, ADC_INJECTED_RANK_1);
 
         /* 运行PMSM电机 */
         PMSM_Run(&PMSM);

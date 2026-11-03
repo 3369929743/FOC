@@ -151,9 +151,9 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
 
     /* 读取三相电流，将 ADC 原始值换算为实际电流值（安培）
      * 注意：若下桥臂采样方向与 FOC 定义不一致，需要在此取反 */
-    self->Foc.Iu = My_ADC_Calculate_Current(&self->ADC_IU_Ch, &self->ADC_BSP_Param);
-    self->Foc.Iv = My_ADC_Calculate_Current(&self->ADC_IV_Ch, &self->ADC_BSP_Param);
-    self->Foc.Iw = My_ADC_Calculate_Current(&self->ADC_IW_Ch, &self->ADC_BSP_Param);
+    self->Foc.Iu = -My_ADC_Calculate_Current(&self->ADC_IU_Ch, &self->ADC_BSP_Param);
+    self->Foc.Iv = -My_ADC_Calculate_Current(&self->ADC_IV_Ch, &self->ADC_BSP_Param);
+    self->Foc.Iw = -My_ADC_Calculate_Current(&self->ADC_IW_Ch, &self->ADC_BSP_Param);
 
     /* Clarke + Park 正向变换，将三相静止坐标系电流变换为旋转坐标系 Id、Iq */
     FOC_Conv_Update(&self->Foc);
