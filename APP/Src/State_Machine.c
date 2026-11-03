@@ -83,7 +83,9 @@ static Timer_t TIM_Global;
 static SoftTimer_t Soft_Timer_Vofa;
 
 /*-------------------- Vofa通道实例 -------------------- */
-Vofa_Ch_t ADC_Iu_Ch, ADC_Iv_Ch, ADC_Iw_Ch;
+Vofa_Ch_t ADC_Id_Ch, ADC_Iq_Ch;
+Vofa_Ch_t ADC_Vd_Ch, ADC_Vq_Ch;
+Vofa_Ch_t FOC_Theta_Ch;
 
 /*-------------------- 串口实例 -------------------- */
 static Serial_t Serial_Screen;
@@ -152,9 +154,11 @@ void State_Machine_Init(void){
     /* 初始化Vofa通道 */
     Vofa_Init(CDC_Transmit_FS);
     /* 注册Vofa通道 */
-    Vofa_Ch_Register(3, &ADC_Iu_Ch, &ADC_Iv_Ch, &ADC_Iw_Ch);
+    Vofa_Ch_Register(4, &ADC_Id_Ch, &ADC_Iq_Ch, &ADC_Vd_Ch, &ADC_Vq_Ch);
+    Vofa_Ch_Register(1, &FOC_Theta_Ch);
     /* 设置Vofa通道数据 */
-    Vofa_Data_Register(3, &PMSM.Foc.Iu, &PMSM.Foc.Iv, &PMSM.Foc.Iw);
+    Vofa_Data_Register(4, &PMSM.Foc.Id, &PMSM.Foc.Iq, &PMSM.Foc.Vd, &PMSM.Foc.Vq);
+    Vofa_Data_Register(1, &PMSM.Foc.Theta);
 
     /* 初始化串口 */
     Serial_Init(&Serial_Screen, Serial_3);

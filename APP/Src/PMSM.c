@@ -108,9 +108,9 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     /* 计算Id和Iq,正向变换 */
     FOC_Conv_Update(&self->Foc);
 
-    /* 更新Vq和Vd,电流PI闭环 */  
-    self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq);
-    self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id);
+    // /* 更新Vq和Vd,电流PI闭环 */  
+    // self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq);
+    // self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id);
 
     /* 反Park变换 */
     FOC_Rev_Conv_Update(&self->Foc);
