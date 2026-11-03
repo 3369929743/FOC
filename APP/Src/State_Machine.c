@@ -100,6 +100,7 @@ static void Timer_Global_PeriodElapsedCallback(Timer_t *timer)
     if(timer == &TIM_Global){
         SoftTimer_Update(&Soft_Timer_Vofa);
         Key_Tick(&Key_1, HAL_GPIO_ReadPin(Key_1_GPIO_Port, Key_1_Pin));
+        Key_Tick(&Key_2, HAL_GPIO_ReadPin(Key_2_GPIO_Port, Key_2_Pin));
     }
 }
 
@@ -132,6 +133,19 @@ void Key_Global_Event_Callback(Key_t *Key, Key_Event_e Event){
                 break;
         }
     }
+    if(Key == &Key_2){
+        switch (Event) {
+            case KEY_EVENT_ONCE_PRESS:
+                PMSM.PID_Iq.Target += 0.05f;
+                break;
+            case KEY_EVENT_DOUBLE_PRESS:
+                break;
+            case KEY_EVENT_LONG_PRESS:
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 /* ====================== 主状态机函数 ====================== */
@@ -147,10 +161,13 @@ void State_Machine_Init(void){
 
     /* 初始化按键 */
     Key_Init(&Key_1, KEY_LEVEL_LOW);
+    Key_Init(&Key_2, KEY_LEVEL_LOW);
     Key_SetClickTimeout(&Key_1, 0);
+    Key_SetClickTimeout(&Key_2, 0);
 
     /* 注册按键事件回调函数 */
     Key_SetEventCallback(&Key_1, Key_Global_Event_Callback);
+    Key_SetEventCallback(&Key_2, Key_Global_Event_Callback);
 
     /* 初始化Vofa通道 */
     Vofa_Init(CDC_Transmit_FS);
