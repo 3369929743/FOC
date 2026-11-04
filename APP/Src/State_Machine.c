@@ -85,7 +85,7 @@ static SoftTimer_t Soft_Timer_Vofa;
 /*-------------------- Vofa通道实例 -------------------- */
 Vofa_Ch_t ADC_Id_Ch, ADC_Iq_Ch;
 Vofa_Ch_t ADC_Vd_Ch, ADC_Vq_Ch;
-Vofa_Ch_t FOC_Theta_Ch;
+Vofa_Ch_t FOC_Iq_Target_Ch, FOC_Iq_Output_Ch;
 
 /*-------------------- 串口实例 -------------------- */
 static Serial_t Serial_Screen;
@@ -173,10 +173,10 @@ void State_Machine_Init(void){
     Vofa_Init(CDC_Transmit_FS);
     /* 注册Vofa通道 */
     Vofa_Ch_Register(4, &ADC_Id_Ch, &ADC_Iq_Ch, &ADC_Vd_Ch, &ADC_Vq_Ch);
-    Vofa_Ch_Register(1, &FOC_Theta_Ch);
+    Vofa_Ch_Register(2, &FOC_Iq_Target_Ch, &FOC_Iq_Output_Ch);
     /* 设置Vofa通道数据 */
     Vofa_Data_Register(4, &PMSM.Foc.Id, &PMSM.Foc.Iq, &PMSM.Foc.Vd, &PMSM.Foc.Vq);
-    Vofa_Data_Register(1, &PMSM.Foc.Theta);
+    Vofa_Data_Register(2, &PMSM.PID_Iq.Target, &PMSM.PID_Iq.Output);
 
     /* 初始化串口 */
     Serial_Init(&Serial_Screen, Serial_3);
@@ -189,7 +189,6 @@ void State_Machine_Init(void){
     SoftTimer_Init(&Soft_Timer_Vofa, SOFTTIMER_MODE_PERIODIC, 1);
     SoftTimer_Start(&Soft_Timer_Vofa);
 
-    // PID_Set_Target(&PMSM.PID_Iq, 0.1f);
 }
 
 void State_Machine_Loop(void){
@@ -200,4 +199,5 @@ void State_Machine_Loop(void){
 
     /* 管理按键事件 */
     Key_Trigger_Event(&Key_1);
+    Key_Trigger_Event(&Key_2);
 }
