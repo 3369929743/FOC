@@ -71,7 +71,7 @@ PID_Status_t PID_Init(PID_t *PID, PID_Confg_t *Config)
   */
 void PID_Clear(PID_t *PID)
 {
-    PID->ErrorInt = 0;           /* 累积误差（积分项）清零：消除历史误差累积 */
+    PID->Integral = 0;           /* 累积误差（积分项）清零：消除历史误差累积 */
     PID->Pre_Error = 0;          /* 上一次误差清零：清除微分项的历史参考值 */
     PID->Cur_Error = 0;          /* 当前误差清零：确保下次计算从零开始 */
     PID->Output = 0;             /* PID输出值清零：复位控制量输出 */
@@ -140,18 +140,18 @@ static void PID_Update(PID_t *PID)
     /* ========== 第一步：误差计算 ========== */
     PID->Pre_Error = PID->Cur_Error;                                    /* 保存上一次误差：用于计算误差变化率（微分项） */
     PID->Cur_Error = PID->Target - PID->Actual;                         /* 计算当前误差：目标值 - 实际值，PID控制的核心输入 */
-    PID->ErrorInt += PID->Cur_Error;                                    /* 累积误差（积分项）：累加历史误差，用于消除稳态误差 */
+    PID->Integral += PID->Ki * PID->Cur_Error;                                    /* 累积误差（积分项）：累加历史误差，用于消除稳态误差 */
 
     /* ========== 第二步：积分限幅（防止积分饱和） ========== */
     /* 积分饱和现象：当系统长时间存在误差时，积分项会不断累积导致输出过大
      * 限幅作用：限制积分项的最大/最小值，避免系统响应过冲或失控 */
-    if (PID->ErrorInt > PID->IntMax)
+    if (PID->Integral > PID->IntMax)
     {
-        PID->ErrorInt = PID->IntMax;                                    /* 积分项超过上限：钳位到最大值 */
+        PID->Integral = PID->IntMax;                                    /* 积分项超过上限：钳位到最大值 */
     }
-    else if (PID->ErrorInt < PID->IntMin)
+    else if (PID->Integral < PID->IntMin)
     {
-        PID->ErrorInt = PID->IntMin;                                    /* 积分项低于下限：钳位到最小值 */
+        PID->Integral = PID->IntMin;                                    /* 积分项低于下限：钳位到最小值 */
     }
     
 #if PID_USE_FLOAT
@@ -167,7 +167,7 @@ static void PID_Update(PID_t *PID)
      * - 比例项(P)：响应当前误差，Kp越大响应越快但可能超调
      * - 积分项(I)：消除稳态误差，Ki过大可能导致振荡
      * - 微分项(D)：预测误差趋势，抑制超调，Kd过大可能放大噪声 */
-    PID->Output = PID->Kp * PID->Cur_Error + PID->Ki * PID->ErrorInt + PID->Kd * PID->Error_Rate_Filter;
+    PID->Output = PID->Kp * PID->Cur_Error + PID->Integral + PID->Kd * PID->Error_Rate_Filter;
 #else
     /* ========== 第三步：定点模式 - 微分项滤波 + PID计算 ========== */
     /* 定点化一阶低通滤波：
@@ -180,7 +180,7 @@ static void PID_Update(PID_t *PID)
      * - 使用int64_t中间变量防止乘法运算溢出
      * - Kd项的滤波结果需要单独还原（PID_Restore）
      * - 最终输出需要整体还原（PID_Restore） */
-    int64_t Temp = (int64_t)PID->Kp * PID->Cur_Error + (int64_t)PID->Ki * PID->ErrorInt + (int64_t)PID->Kd * PID->Error_Rate_Filter;
+    int64_t Temp = (int64_t)PID->Kp * PID->Cur_Error + (int64_t)PID->Integral + (int64_t)PID->Kd * PID->Error_Rate_Filter;
     PID->Output = PID_Restore(Temp);                                    /* 最终输出还原：将定点数转换回原始数值范围 */
 #endif
     

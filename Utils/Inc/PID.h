@@ -23,9 +23,10 @@ typedef struct
 {
     float Ts;                           //采样时间
 
-    PID_val Kp, Ki, Kd;                   //PID参数，这个是用于计算的参数，实际使用时需要根据采样时间进行换算；使用定点数运算时进行定点化处理   
+    PID_val Kp, Ki, Kd;                 //PID参数，这个是用于计算的参数，实际使用时需要根据采样时间进行换算；使用定点数运算时进行定点化处理   
 
-    PID_val Pre_Error, Cur_Error, ErrorInt, IntMax, IntMin;
+    PID_val Pre_Error, Cur_Error;       // 上一次和当前的误差
+    PID_val Integral, IntMax, IntMin;   // 积分项和积分项的上下限
 
     PID_val Actual, Target;
 
