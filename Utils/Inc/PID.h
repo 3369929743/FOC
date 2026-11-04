@@ -14,9 +14,16 @@
     #define PID_ZOOM (1 << MULTIPLE)
 #endif
 
+typedef enum{
+    PID_OK = 0x0U,
+    PID_ERROR = 0x1U
+}PID_Status_t;
+
 typedef struct
 {
-    PID_val Kp, Ki, Kd;
+    float Ts;                           //采样时间
+
+    PID_val Kp, Ki, Kd;                   //PID参数，这个是用于计算的参数，实际使用时需要根据采样时间进行换算；使用定点数运算时进行定点化处理   
 
     PID_val Pre_Error, Cur_Error, ErrorInt, IntMax, IntMin;
 
@@ -29,17 +36,20 @@ typedef struct
     PID_val Alpha, Error_Rate_Filter;
 } PID_t;
 
+/* PID配置结构体,该结构体由用户填写，填浮点数，如果要用定点数已近内部处理了 */
 typedef struct {
-    float Kp, Ki, Kd;
+    float Ts;                           //采样时间
 
-    float IntMax, IntMin;
+    float Kp, Ki, Kd;                   //PID参数   
 
-    float OutMax, OutMin;
+    float IntMax, IntMin;               //积分项的上下限
 
-    float Alpha;
+    float OutMax, OutMin;               //输出的上下限
+
+    float Alpha;                        //平滑系数，这是d项的一阶低通滤波
 }PID_Confg_t;
 
-void PID_Init(PID_t *PID, PID_Confg_t *Config);
+PID_Status_t PID_Init(PID_t *PID, PID_Confg_t *Config);
 void PID_Clear(PID_t *PID);
 void PID_Set_Target(PID_t *PID, PID_val Target);
 void PID_Set_Actual(PID_t *PID, PID_val Actual);

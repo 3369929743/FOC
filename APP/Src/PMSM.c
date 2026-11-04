@@ -44,8 +44,12 @@ PMSM_Status_e PMSM_Init(PMSM_t *self, PMSM_Config_t *config){
         return PMSM_ERROR;
     }
     /* 初始化PID控制器：Id环和Iq环各一个PI控制器 */
-    PID_Init(&self->PID_Iq, config->PID_Iq_Config);
-    PID_Init(&self->PID_Id, config->PID_Id_Config);
+    if(PID_Init(&self->PID_Iq, config->PID_Iq_Config) != PID_OK){
+        return PMSM_ERROR;
+    }
+    if(PID_Init(&self->PID_Id, config->PID_Id_Config) != PID_OK){
+        return PMSM_ERROR;
+    }
 
     /* 设置电流目标值为0，初始状态下不输出力矩，安全启动 */
     PID_Set_Target(&self->PID_Iq, 0.0f);

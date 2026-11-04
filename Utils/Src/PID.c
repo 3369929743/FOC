@@ -20,19 +20,24 @@
   * @retval 无
   * @note   初始化后自动清零状态
   */
-void PID_Init(PID_t *PID, PID_Confg_t *Config)
+PID_Status_t PID_Init(PID_t *PID, PID_Confg_t *Config)
 {
     /* 滤波系数修正 */
     if(Config->Alpha == 0)
     {
         Config->Alpha = 1.0f;
     }
+    if(Config->Ts <= 0)
+    {
+        return PID_ERROR;  /* 采样时间不能为0，避免除以零错误 */
+    }
+    PID->Ts = Config->Ts;
     
 #if PID_USE_FLOAT
     /* 浮点模式 */
     PID->Kp = Config->Kp;
-    PID->Ki = Config->Ki;
-    PID->Kd = Config->Kd;
+    PID->Ki = Config->Ki * Config->Ts;
+    PID->Kd = Config->Kd / Config->Ts;
     PID->IntMax = (Config->IntMax == 0) ? FLT_MAX : Config->IntMax;
     PID->IntMin = (Config->IntMin == 0) ? -PID->IntMax : Config->IntMin;
     PID->OutMax = (Config->OutMax == 0) ? FLT_MAX : Config->OutMax;
@@ -41,8 +46,8 @@ void PID_Init(PID_t *PID, PID_Confg_t *Config)
 #else
     /* 定点模式: 放大转整型 */
     PID->Kp = (PID_val)(Config->Kp * PID_ZOOM);
-    PID->Ki = (PID_val)(Config->Ki * PID_ZOOM);
-    PID->Kd = (PID_val)(Config->Kd * PID_ZOOM);
+    PID->Ki = (PID_val)((Config->Ki * Config->Ts) * PID_ZOOM);
+    PID->Kd = (PID_val)((Config->Kd / Config->Ts) * PID_ZOOM);
     PID->IntMax = (Config->IntMax == 0) ? INT32_MAX : Config->IntMax;
     PID->IntMin = (Config->IntMin == 0) ? -PID->IntMax : Config->IntMin;
     PID->OutMax = (Config->OutMax == 0) ? INT32_MAX : Config->OutMax;
@@ -52,6 +57,8 @@ void PID_Init(PID_t *PID, PID_Confg_t *Config)
     
     /* 清零状态 */
     PID_Clear(PID);
+
+    return PID_OK;  /* 初始化成功 */
 }
 
 /**
@@ -245,15 +252,15 @@ void PID_Change_Param(PID_t *PID, float Kp, float Ki, float Kd, float Alpha)
 #if PID_USE_FLOAT
     /* 浮点模式: 直接赋值 */
     PID->Alpha = Alpha;
-    PID->Kp = Kp;
-    PID->Ki = Ki;
-    PID->Kd = Kd;
+    PID->Kp = Kp ;
+    PID->Ki = Ki * PID->Ts;
+    PID->Kd = Kd / PID->Ts;
 #else
     /* 定点模式: 放大转整型 */
     PID->Alpha = (PID_val)(Alpha * PID_ZOOM);
     PID->Kp = (PID_val)(Kp * PID_ZOOM);
-    PID->Ki = (PID_val)(Ki * PID_ZOOM);
-    PID->Kd = (PID_val)(Kd * PID_ZOOM);
+    PID->Ki = (PID_val)((Ki * PID->Ts) * PID_ZOOM);
+    PID->Kd = (PID_val)((Kd / PID->Ts) * PID_ZOOM);
 #endif
     
     /* 清零状态 */
