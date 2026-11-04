@@ -178,7 +178,7 @@ void State_Machine_Init(void){
     Vofa_Data_Register(4, &PMSM.Foc.Id, &PMSM.Foc.Iq, &PMSM.Foc.Vd, &PMSM.Foc.Vq);
     Vofa_Data_Register(1, &PMSM.Foc.Theta);
 
-    /* 初始化串口 */
+    /* 初始化串口 */1
     Serial_Init(&Serial_Screen, Serial_3);
 
     /* 初始化定时器 */

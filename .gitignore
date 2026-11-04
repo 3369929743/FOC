@@ -21,3 +21,6 @@ Thumbs.db"*.py"
 *.sh
 *.py
 *.bat
+
+# 本地 ARM LiveWatch 插件补丁及验证文件
+/tools/livewatch-typedef-patch/
