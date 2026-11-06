@@ -103,6 +103,12 @@ PMSM_Status_e PMSM_Init(PMSM_t *self, PMSM_Config_t *config){
     /* 启动ADC触发用PWM通道：该通道不驱动功率管，仅用于产生ADC采样触发信号 */
     Timer_PWM_Start(&self->Timer_FOC, self->Timer_Channel_ADC);
 
+    /* 保存一节低通滤波参数到对象，供后续电流值计算时使用 */
+    if(config->Filter_Alpha > 1.0f){
+        return PMSM_ERROR;
+    }
+    self->Foc.Filter_Alpha  = config->Filter_Alpha;
+
     /* 初始化为空闲状态，等待用户调用模式切换API启动电机 */
     self->Mode = STATE_IDLE;
 
@@ -131,6 +137,10 @@ static inline void PMSM_Calibration_Run(PMSM_t *self){
         /* 仍有通道未完成校准，继续保持校准状态 */
         self->Mode = STATE_CALIBRATION;
     }
+}
+
+static inline float My_abs(float x){
+    return  (x < 0.0f) ? -x : x;
 }
 
 /**
@@ -162,9 +172,23 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     /* Clarke + Park 正向变换，将三相静止坐标系电流变换为旋转坐标系 Id、Iq */
     FOC_Conv_Update(&self->Foc);
 
+    /* 一节低通滤波，用于平滑电流值 */
+    self->Foc.Id_Filter = self->Foc.Id_Filter * self->Foc.Filter_Alpha + self->Foc.Id * (1.0f - self->Foc.Filter_Alpha);
+    self->Foc.Iq_Filter = self->Foc.Iq_Filter * self->Foc.Filter_Alpha + self->Foc.Iq * (1.0f - self->Foc.Filter_Alpha);
+
     /* 更新Vq和Vd,电流PI闭环 */  
-    self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq);
-    self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id);
+    self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq_Filter);
+    self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id_Filter);
+
+    if(self->PID_Iq.Target == 0.0f){
+        const float Voltage_Dead = 0.01f;
+        if(My_abs(self->Foc.Vq) < Voltage_Dead){
+            self->Foc.Vq = 0.0f;
+        }
+        if(My_abs(self->Foc.Vd) < Voltage_Dead){
+            self->Foc.Vd = 0.0f;
+        }
+    }
 
     FOC_Rev_Conv_Update(&self->Foc);
 

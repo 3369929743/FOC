@@ -1,5 +1,6 @@
 #include "FOC_math.h"
 #include <math.h>
+#include <stdint.h>
 
 #define SQRT3_DIV_2 0.8660254f          //二分之根号3
 #define __2PI 6.2831853f                //2π
@@ -101,6 +102,10 @@ static inline void FOC_Zero_Injection(FOC_t *self)
     self->Tcmp1 = ((self->Vu_mod) / self->Ubus + 0.5f) * self->TARR;
     self->Tcmp2 = ((self->Vv_mod) / self->Ubus + 0.5f) * self->TARR;
     self->Tcmp3 = ((self->Vw_mod) / self->Ubus + 0.5f) * self->TARR;
+
+    self->Tcmp1 = (uint32_t)(self->Tcmp1 + 0.5f);
+    self->Tcmp2 = (uint32_t)(self->Tcmp2 + 0.5f);
+    self->Tcmp3 = (uint32_t)(self->Tcmp3 + 0.5f);
 }
 
 /**

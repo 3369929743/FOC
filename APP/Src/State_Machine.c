@@ -41,11 +41,11 @@ uint32_t MT6701_ReadData(void)
 static PMSM_t PMSM;
 
 /*-------------------- PID配置参数 -------------------- */
-// static PID_Confg_t PID_Id_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
-// static PID_Confg_t PID_Iq_Config = {6.28f, .IntMax = 8.0f, .OutMax = 12.0f};
+// static PID_Confg_t PID_Id_Config = {0.2f, .IntMax = 1.2f, .OutMax = 12.0f};
+// static PID_Confg_t PID_Iq_Config = {0.2f, .IntMax = 1.2f, .OutMax = 12.0f};
 
-static PID_Confg_t PID_Id_Config = {.Ts = 0.00005f, .Kp = 0.01f, .IntMax = 0.0f, .OutMax = 1.2f};
-static PID_Confg_t PID_Iq_Config = {.Ts = 0.00005f, .Kp = 0.01f, .IntMax = 0.0f, .OutMax = 1.2f};
+static PID_Confg_t PID_Id_Config = {.Ts = 0.00005f, .Kp = 0.01f, .Ki = 0.01f, .IntMax = 0.8f, .OutMax = 1.2f};
+static PID_Confg_t PID_Iq_Config = {.Ts = 0.00005f, .Kp = 0.08f, .Ki = 0.2f, .IntMax = 0.8f, .OutMax = 1.2f};
 
 /*-------------------- PMSM电机配置参数 -------------------- */
 static PMSM_Config_t PMSM_Config = {
@@ -74,6 +74,8 @@ static PMSM_Config_t PMSM_Config = {
     .Motor_Pn = MOTOR_PN,
     .Ubus = U_BUS,
     .TARR = ARR_CALCULATE,
+    /* 一节低通滤波参数 */
+    .Filter_Alpha = 0.0f,
 };
 
 /*-------------------- 定时器实例 -------------------- */
@@ -83,9 +85,11 @@ static Timer_t TIM_Global;
 static SoftTimer_t Soft_Timer_Vofa;
 
 /*-------------------- Vofa通道实例 -------------------- */
-Vofa_Ch_t ADC_Id_Ch, ADC_Iq_Ch;
+Vofa_Ch_t ADC_Iq_Ch;
 Vofa_Ch_t ADC_Vd_Ch, ADC_Vq_Ch;
+Vofa_Ch_t FOC_Iq_Integral;
 Vofa_Ch_t FOC_Iq_Target_Ch, FOC_Iq_Output_Ch;
+Vofa_Ch_t FOC_Iq_PI_Error;
 
 /*-------------------- 串口实例 -------------------- */
 static Serial_t Serial_Screen;
@@ -136,7 +140,7 @@ void Key_Global_Event_Callback(Key_t *Key, Key_Event_e Event){
     if(Key == &Key_2){
         switch (Event) {
             case KEY_EVENT_ONCE_PRESS:
-                PMSM.PID_Iq.Target += 0.05f;
+                PMSM.PID_Iq.Target += 0.2f;
                 break;
             case KEY_EVENT_DOUBLE_PRESS:
                 break;
@@ -172,11 +176,11 @@ void State_Machine_Init(void){
     /* 初始化Vofa通道 */
     Vofa_Init(CDC_Transmit_FS);
     /* 注册Vofa通道 */
-    Vofa_Ch_Register(4, &ADC_Id_Ch, &ADC_Iq_Ch, &ADC_Vd_Ch, &ADC_Vq_Ch);
-    Vofa_Ch_Register(2, &FOC_Iq_Target_Ch, &FOC_Iq_Output_Ch);
+    Vofa_Ch_Register(6, &ADC_Iq_Ch, &ADC_Vd_Ch, &ADC_Vq_Ch, &FOC_Iq_Integral, &FOC_Iq_Target_Ch, &FOC_Iq_Output_Ch);
+    Vofa_Ch_Register(1, &FOC_Iq_PI_Error);
     /* 设置Vofa通道数据 */
-    Vofa_Data_Register(4, &PMSM.Foc.Id, &PMSM.Foc.Iq, &PMSM.Foc.Vd, &PMSM.Foc.Vq);
-    Vofa_Data_Register(2, &PMSM.PID_Iq.Target, &PMSM.PID_Iq.Output);
+    Vofa_Data_Register(6, &PMSM.Foc.Iq, &PMSM.Foc.Vd, &PMSM.Foc.Vq, &PMSM.PID_Iq.Integral, &PMSM.PID_Iq.Target, &PMSM.PID_Iq.Output);
+    Vofa_Data_Register(1, &PMSM.PID_Iq.Cur_Error);
 
     /* 初始化串口 */
     Serial_Init(&Serial_Screen, Serial_3);

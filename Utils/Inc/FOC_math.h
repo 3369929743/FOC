@@ -41,6 +41,10 @@ typedef struct
 
     float Id, Iq;                                 //d轴电流，q轴电流，用于电流闭环控制的电流
 
+    float Id_Filter, Iq_Filter;                    //d轴电流，q轴电流，用于电流闭环控制的电流，经过滤波
+
+    float Filter_Alpha;                            //一节低通滤波,旧数据的占比
+
     Vf_Control_t Vf_Param;                        //v/f控制参数，用于v/f控制模式
 } FOC_t;
 

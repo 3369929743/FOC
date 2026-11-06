@@ -51,6 +51,8 @@ typedef struct {
 typedef struct {
     /* ========== 函数指针 ============== */
     Encoder_Read_Data_t Read_Data;
+
+    /* ========== PID配置参数 ============== */
     PID_Confg_t *PID_Id_Config;
     PID_Confg_t *PID_Iq_Config;
 
@@ -71,6 +73,7 @@ typedef struct {
     float ADC_Current_Gain;                                 //运放增益
     float ADC_Shunt_Res;                                    //采样电阻
     uint32_t SingleDiff;                                    //ADC采样模式选择，ADC_SINGLE_ENDED（单端）或 ADC_DIFFERENTIAL_ENDED（差分）
+    float Filter_Alpha;                                    //一节低通滤波,旧数据的占比
     /* 定时器参数 */
     uint32_t Timer_Cmp_Trigger_ADC;                            //定时器比较值，用于触发ADC采样
     uint32_t Timer_Channel_Vu;                              //定时器通道，TIM_CHANNEL_1、TIM_CHANNEL_2或TIM_CHANNEL_4（PWM通道4）
