@@ -48,9 +48,9 @@ PID_Status_t PID_Init(PID_t *PID, PID_Confg_t *Config)
     PID->Kp = (PID_val)(Config->Kp * PID_ZOOM);
     PID->Ki = (PID_val)((Config->Ki * Config->Ts) * PID_ZOOM);
     PID->Kd = (PID_val)((Config->Kd / Config->Ts) * PID_ZOOM);
-    PID->IntMax = (Config->IntMax == 0) ? INT32_MAX : Config->IntMax;
-    PID->IntMin = (Config->IntMin == 0) ? -PID->IntMax : Config->IntMin;
-    PID->OutMax = (Config->OutMax == 0) ? INT32_MAX : Config->OutMax;
+    PID->IntMax = (Config->IntMax == 0) ? INT64_MAX : (PID_val)(Config->IntMax * PID_ZOOM);
+    PID->IntMin = (Config->IntMin == 0) ? -PID->IntMax : (PID_val)(Config->IntMin * PID_ZOOM);
+    PID->OutMax = (Config->OutMax == 0) ? INT64_MAX : Config->OutMax;
     PID->OutMin = (Config->OutMin == 0) ? -PID->OutMax : Config->OutMin;
     PID->Alpha = (PID_val)(Config->Alpha * PID_ZOOM);
 #endif
@@ -140,7 +140,12 @@ static void PID_Update(PID_t *PID)
     /* ========== 第一步：误差计算 ========== */
     PID->Pre_Error = PID->Cur_Error;                                    /* 保存上一次误差：用于计算误差变化率（微分项） */
     PID->Cur_Error = PID->Target - PID->Actual;                         /* 计算当前误差：目标值 - 实际值，PID控制的核心输入 */
+#if PID_USE_FLOAT
+    /* 浮点模式：直接计算积分项 */
     PID->Integral += PID->Ki * PID->Cur_Error;                                    /* 累积误差（积分项）：累加历史误差，用于消除稳态误差 */
+#else
+    PID->Integral += (int64_t)PID->Ki * PID->Cur_Error;  /* 定点模式：累积误差（积分项）需还原，避免溢出 */
+#endif
 
     /* ========== 第二步：积分限幅（防止积分饱和） ========== */
     /* 积分饱和现象：当系统长时间存在误差时，积分项会不断累积导致输出过大
@@ -174,13 +179,13 @@ static void PID_Update(PID_t *PID)
      * - 使用PID_Restore还原历史滤波项，避免定点数乘法溢出
      * - (PID_ZOOM - PID->Alpha) 等价于浮点模式的 (1 - Alpha) 
      * - 这是D项   */
-    PID->Error_Rate_Filter = PID_Restore((int64_t)(PID->Cur_Error - PID->Pre_Error) * PID->Alpha + (int64_t)PID->Error_Rate_Filter * (PID_ZOOM - PID->Alpha));
+    PID->Error_Rate_Filter = PID_Restore((PID->Cur_Error - PID->Pre_Error) * PID->Alpha + PID->Error_Rate_Filter * (PID_ZOOM - PID->Alpha));
     
     /* 定点化PID核心公式：
      * - 使用int64_t中间变量防止乘法运算溢出
      * - Kd项的滤波结果需要单独还原（PID_Restore）
      * - 最终输出需要整体还原（PID_Restore） */
-    int64_t Temp = (int64_t)PID->Kp * PID->Cur_Error + (int64_t)PID->Integral + (int64_t)PID->Kd * PID->Error_Rate_Filter;
+    int64_t Temp = PID->Kp * PID->Cur_Error + PID->Integral + PID->Kd * PID->Error_Rate_Filter;
     PID->Output = PID_Restore(Temp);                                    /* 最终输出还原：将定点数转换回原始数值范围 */
 #endif
     
