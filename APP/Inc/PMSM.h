@@ -56,30 +56,35 @@ typedef struct {
     PID_Confg_t *PID_Id_Config;
     PID_Confg_t *PID_Iq_Config;
 
-    /* ========== 硬件配置 ============== */
+    /* ========== 外设配置 ============== */
     ADC_Num_e ADC_Num;                                        //ADC编号，ADC_1或ADC_2
-    Timer_Num_e Timer_Num;                                        //定时器编号，Timer_1或Timer_2
+    Timer_Num_e Timer_Num;                                    //定时器编号，Timer_1或Timer_2
     
-    /* ========== 其他配置参数 ============== */
-    /* 电机参数 */
+    /* ========== 电机参数 ============== */
     float Ubus;                                             //母线电压
     float TARR;                                             //自动重装值
-    /* 编码器参数 */
+    
+    /* ========== 编码器参数 ============== */
     uint32_t Encoder_Res;                                   //编码器分辨率
     uint32_t Motor_Pn;                                      //电机极对数
     uint32_t Encoder_Dir;                                   //编码器方向
     uint32_t Encoder_Error;                                 //编码器误差补偿
-    /* ADC参数 */
+
+    /* ========== ADC参数 ============== */
     float ADC_Current_Gain;                                 //运放增益
     float ADC_Shunt_Res;                                    //采样电阻
     uint32_t SingleDiff;                                    //ADC采样模式选择，ADC_SINGLE_ENDED（单端）或 ADC_DIFFERENTIAL_ENDED（差分）
-    float Filter_Alpha;                                    //一节低通滤波,旧数据的占比
-    /* 定时器参数 */
-    uint32_t Timer_Cmp_Trigger_ADC;                            //定时器比较值，用于触发ADC采样
+    float Filter_Alpha;                                     //一节低通滤波,旧数据的占比
+    
+    /* ========== 定时器参数 ============== */
+    uint32_t Timer_Cmp_Trigger_ADC;                         //定时器比较值，用于触发ADC采样
     uint32_t Timer_Channel_Vu;                              //定时器通道，TIM_CHANNEL_1、TIM_CHANNEL_2或TIM_CHANNEL_4（PWM通道4）
     uint32_t Timer_Channel_Vv;                              //定时器通道，TIM_CHANNEL_1、TIM_CHANNEL_2或TIM_CHANNEL_4（PWM通道4）
     uint32_t Timer_Channel_Vw;                              //定时器通道，TIM_CHANNEL_1、TIM_CHANNEL_2或TIM_CHANNEL_4（PWM通道4）
     uint32_t Timer_Channel_ADC;                             //定时器通道，TIM_CHANNEL_1、TIM_CHANNEL_2或TIM_CHANNEL_4（PWM通道4）
+
+    /* ========== 死区参数 ============== */
+    float Dead_Zero_Speed;                                  //零速死区
 } PMSM_Config_t;
 
 /* 初始化PMSM电机 */

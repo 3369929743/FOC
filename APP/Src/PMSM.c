@@ -65,7 +65,7 @@ PMSM_Status_e PMSM_Init(PMSM_t *self, PMSM_Config_t *config){
     /* 初始化ADC BSP参数：保存运放增益和采样电阻，用于后续电流值计算 */
     My_ADC_BSP_Param_Init(&self->ADC_BSP_Param, config->ADC_Current_Gain, config->ADC_Shunt_Res);
     /* 初始化ADC外设：配置ADC时钟、分辨率等底层硬件 */
-    if(My_ADC_Init(&self->ADC, config->ADC_Num) != PMSM_OK){
+    if(My_ADC_Init(&self->ADC, config->ADC_Num) != ADC_OK){
         return PMSM_ERROR;
     }
 
@@ -172,7 +172,7 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     /* Clarke + Park 正向变换，将三相静止坐标系电流变换为旋转坐标系 Id、Iq */
     FOC_Conv_Update(&self->Foc);
 
-    /* 一节低通滤波，用于平滑电流值 */
+    /* 一阶低通滤波，用于平滑电流值 */
     self->Foc.Id_Filter = self->Foc.Id_Filter * self->Foc.Filter_Alpha + self->Foc.Id * (1.0f - self->Foc.Filter_Alpha);
     self->Foc.Iq_Filter = self->Foc.Iq_Filter * self->Foc.Filter_Alpha + self->Foc.Iq * (1.0f - self->Foc.Filter_Alpha);
 
@@ -180,13 +180,16 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq_Filter);
     self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id_Filter);
 
+    /* 如果没启动电流环，Vq和Vd都设为0，避免零速噪声 */
     if(self->PID_Iq.Target == 0.0f){
         const float Voltage_Dead = 0.01f;
         if(My_abs(self->Foc.Vq) < Voltage_Dead){
             self->Foc.Vq = 0.0f;
+            self->PID_Iq.Integral = 0.0f;
         }
         if(My_abs(self->Foc.Vd) < Voltage_Dead){
             self->Foc.Vd = 0.0f;
+            self->PID_Id.Integral = 0.0f;
         }
     }
 

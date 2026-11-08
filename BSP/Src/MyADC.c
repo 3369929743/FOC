@@ -18,11 +18,6 @@ static ADC_HandleTypeDef* const ADC_Map[] = {
 
 #define ADC_MAX_NUM (sizeof(ADC_Map) / sizeof(ADC_Map[0]))
 
-typedef enum{
-    ADC_OK = 0x0U,
-    ADC_ERROR = 0x1U,
-}ADC_Status_e;
-
 static ADC_t *ADC_Instance[ADC_MAX_NUM] = {NULL};
 
 /**

@@ -20,6 +20,11 @@ typedef enum{
     #undef X
 } ADC_Num_e;
 
+typedef enum{
+    ADC_OK = 0x0U,
+    ADC_ERROR = 0x1U,
+}ADC_Status_e;
+
 typedef struct ADC_Struct{
     ADC_HandleTypeDef *hadc;                                         //ADC句柄
 
@@ -50,7 +55,7 @@ typedef struct{
 }ADC_BSP_Param_t;
 
 /* ===================ADC实例初始化=================== */
-uint8_t My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num);
+ADC_Status_e My_ADC_Init(ADC_t* adc, ADC_Num_e adc_num);
 void My_ADC_Channel_Init(ADC_Channel_t* adc, ADC_Num_e adc_num);
 void My_ADC_BSP_Param_Init(ADC_BSP_Param_t* adc, float current_gain, float R_Shunt);
 

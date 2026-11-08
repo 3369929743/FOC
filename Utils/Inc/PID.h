@@ -10,8 +10,10 @@
     typedef float PID_val;
 #else
     typedef int32_t PID_val;
-    #define MULTIPLE 10
-    #define PID_ZOOM (1 << MULTIPLE)
+    #define MULTIPLE_COEFF 10
+    
+    #define PID_COEFF_SCALE (1 << MULTIPLE_COEFF)
+    #define PID_SIGNAL_SCALE 10
 #endif
 
 typedef enum{
@@ -35,6 +37,12 @@ typedef struct
     PID_val Output;
 
     PID_val Alpha, Error_Rate_Filter;
+
+    PID_val Error_Deadband;
+
+#if !PID_USE_FLOAT
+    int64_t Integral_Zoom;
+#endif
 } PID_t;
 
 /* PID配置结构体,该结构体由用户填写，填浮点数，如果要用定点数已近内部处理了 */
@@ -47,7 +55,9 @@ typedef struct {
 
     float OutMax, OutMin;               //输出的上下限
 
-    float Alpha;                        //平滑系数，这是d项的一阶低通滤波
+    float Alpha;                        //平滑系数，这是d项的一阶低通滤波‘
+
+    float Error_Deadband;               //误差死区
 }PID_Confg_t;
 
 PID_Status_t PID_Init(PID_t *PID, PID_Confg_t *Config);

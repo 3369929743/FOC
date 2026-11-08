@@ -44,8 +44,8 @@ static PMSM_t PMSM;
 // static PID_Confg_t PID_Id_Config = {0.2f, .IntMax = 1.2f, .OutMax = 12.0f};
 // static PID_Confg_t PID_Iq_Config = {0.2f, .IntMax = 1.2f, .OutMax = 12.0f};
 
-static PID_Confg_t PID_Id_Config = {.Ts = 0.00005f, .Kp = 0.01f, .Ki = 0.01f, .IntMax = 0.8f, .OutMax = 1.2f};
-static PID_Confg_t PID_Iq_Config = {.Ts = 0.00005f, .Kp = 0.08f, .Ki = 0.2f, .IntMax = 0.8f, .OutMax = 1.2f};
+static PID_Confg_t PID_Id_Config = {.Ts = 0.00005f, .Kp = 0.01f, .Ki = 0.01f, .IntMax = 0.8f, .OutMax = 1.2f, .Error_Deadband = 0.0f};
+static PID_Confg_t PID_Iq_Config = {.Ts = 0.00005f, .Kp = 0.08f, .Ki = 0.2f, .IntMax = 0.8f, .OutMax = 1.2f, .Error_Deadband = 0.0f};
 
 /*-------------------- PMSM电机配置参数 -------------------- */
 static PMSM_Config_t PMSM_Config = {
