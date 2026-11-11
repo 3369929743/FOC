@@ -1,5 +1,7 @@
 #include "PMSM.h"
 #include "Timer.h"
+#include "My_math.h"
+#include <assert.h>
 
 /**
  * @brief   PMSM 电机初始化
@@ -19,19 +21,15 @@ PMSM_Status_e PMSM_Init(PMSM_t *self, PMSM_Config_t *config){
     }
 
     /* 检查FOC核心参数：母线电压决定电压利用率上限，TARR决定PWM分辨率 */
-    if(config->Ubus == 0.0f || config->TARR == 0.0f){
-        return PMSM_ERROR;
-    }
+    assert(config->Ubus > 0.0f && config->TARR > 0.0f);
+
     /* 初始化FOC配置参数：计算电压基准值、SVPWM相关常量等 */
     FOC_Param_Init(&self->Foc, config->Ubus, config->TARR);
 
     /* 检查编码器参数：Read_Data为数据读取回调，极对数和分辨率用于角度解算 */
-    if(config->Read_Data == NULL){
-        return PMSM_ERROR;
-    }
-    else if(config->Encoder_Res == 0 || config->Motor_Pn == 0){
-        return PMSM_ERROR;
-    }
+    assert(config->Read_Data != NULL);
+    assert(config->Encoder_Res > 0 && config->Motor_Pn > 0);
+
     /* 初始化编码器：设置分辨率、极对数、方向和误差补偿，注册数据读取函数 */
     Encoder_Param_Init(&self->Encoder, config->Encoder_Res, config->Motor_Pn, config->Encoder_Dir, config->Encoder_Error);
     Encoder_Read_Data_Register(&self->Encoder, config->Read_Data);
@@ -51,6 +49,8 @@ PMSM_Status_e PMSM_Init(PMSM_t *self, PMSM_Config_t *config){
         return PMSM_ERROR;
     }
 
+    assert(config->Filter_Alpha > 0.0f && config->Filter_Alpha <= 1.0f);    // 一节低通滤波参数必须在0到1之间
+
     /* 设置电流目标值为0，初始状态下不输出力矩，安全启动 */
     PID_Set_Target(&self->PID_Iq, 0.0f);
     PID_Set_Target(&self->PID_Id, 0.0f);
@@ -59,9 +59,9 @@ PMSM_Status_e PMSM_Init(PMSM_t *self, PMSM_Config_t *config){
     if(config->ADC_Num == ADC_NUM_INVALID){
         return PMSM_ERROR;
     }
-    else if(config->ADC_Current_Gain == 0.0f || config->ADC_Shunt_Res == 0.0f){
-        return PMSM_ERROR;
-    }
+    assert(config->ADC_Current_Gain > 0.0f);
+    assert(config->ADC_Shunt_Res > 0.0f);
+
     /* 初始化ADC BSP参数：保存运放增益和采样电阻，用于后续电流值计算 */
     My_ADC_BSP_Param_Init(&self->ADC_BSP_Param, config->ADC_Current_Gain, config->ADC_Shunt_Res);
     /* 初始化ADC外设：配置ADC时钟、分辨率等底层硬件 */
@@ -103,10 +103,6 @@ PMSM_Status_e PMSM_Init(PMSM_t *self, PMSM_Config_t *config){
     /* 启动ADC触发用PWM通道：该通道不驱动功率管，仅用于产生ADC采样触发信号 */
     Timer_PWM_Start(&self->Timer_FOC, self->Timer_Channel_ADC);
 
-    /* 保存一节低通滤波参数到对象，供后续电流值计算时使用 */
-    if(config->Filter_Alpha > 1.0f){
-        return PMSM_ERROR;
-    }
     self->Foc.Filter_Alpha  = config->Filter_Alpha;
 
     /* 初始化为空闲状态，等待用户调用模式切换API启动电机 */
@@ -161,7 +157,7 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     Encoder_Update(&self->Encoder, &self->Foc.Theta);
 
     /* 计算 cos_Theta 和 sin_Theta，供 Park/反Park 变换使用 */
-    FOC_Get_Cos_Sin(&self->Foc);
+    My_math_Get_Sin_Cos(self->Foc.Theta, &self->Foc.sin_Theta, &self->Foc.cos_Theta);
 
     /* 读取三相电流，将 ADC 原始值换算为实际电流值（安培）
      * 注意：若下桥臂采样方向与 FOC 定义不一致，需要在此取反 */
@@ -183,7 +179,7 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     /* 如果没启动电流环，Vq和Vd都设为0，避免零速噪声 */
     if(self->PID_Iq.Target == 0.0f){
         const float Voltage_Dead = 0.01f;
-        if(My_abs(self->Foc.Vq) < Voltage_Dead){
+        if(My_abs(self->Foc.Vq) < Voltage_Dead){ 
             self->Foc.Vq = 0.0f;
             self->PID_Iq.Integral = 0.0f;
         }

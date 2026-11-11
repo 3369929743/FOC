@@ -17,6 +17,9 @@ typedef struct Encoder_Struct
     float Theta;                        // 角度
     float Theta_e;                      // 电角度
 
+    float Count_Scale;                  // 编码器计数转角度的系数
+    uint32_t Count_Mask;                 // 编码器计数掩码
+
     Encoder_Read_Data_t Read_Data;      // 编码器读取数据函数指针
 } Encoder_t;
 

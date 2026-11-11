@@ -5,7 +5,7 @@
 #include "Encoder.h"
 
 #define SCREEN_STEP 100                    //屏幕步进值
-#define SCREEN_STEP_SCALE (SCREEN_STEP / ENCODER_RES)     //屏幕步进值缩放因子                    
+#define SCREEN_STEP_SCALE (SCREEN_STEP / ENCODER_RES_CALCULATE)     //屏幕步进值缩放因子                    
 
 typedef struct{
     uint32_t Send_FLAG;           //发送标志位

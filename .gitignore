@@ -20,6 +20,8 @@ openocd.cfg
 Thumbs.db"*.py" 
 *.sh
 *.py
+!Create_Sin_Table_Float.py
+!Create_Sin_Table_Int.py
 *.bat
 
 # 本地 ARM LiveWatch 插件补丁及验证文件

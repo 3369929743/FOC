@@ -48,6 +48,7 @@
 #include "PID.h"
 #include <limits.h>
 #include <float.h>
+#include <assert.h>
 
 /**
   * @brief  PID控制器初始化函数
@@ -69,14 +70,13 @@
   */
 PID_Status_t PID_Init(PID_t *PID, PID_Confg_t *Config)
 {
+    assert(PID != NULL);
+    assert(Config != NULL);
+    assert(Config->Ts > 0);
     /* 滤波系数修正 */
     if(Config->Alpha == 0)
     {
         Config->Alpha = 1.0f;
-    }
-    if(Config->Ts <= 0)
-    {
-        return PID_ERROR;  /* 采样时间不能为0，避免除以零错误 */
     }
     PID->Ts = Config->Ts;
     

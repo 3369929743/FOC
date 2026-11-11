@@ -1,5 +1,6 @@
 #include "Encoder.h"
 #include "math.h"
+#include <assert.h>
 
 #define __2PI 6.2831853f                //2π
 
@@ -11,10 +12,14 @@
  * @param Encoder_Dir 编码器方向(0=正向, 非0=反向)
  */
 void Encoder_Param_Init(Encoder_t *encoder, uint32_t Encoder_Res, uint32_t Motor_Pn, uint32_t Encoder_Dir, uint32_t Encoder_Error){
+    assert(Encoder_Res && ((Encoder_Res & (Encoder_Res - 1)) == 0));
     encoder->Encoder_Res = Encoder_Res;
     encoder->Motor_Pn = Motor_Pn;
     encoder->Encoder_Dir = Encoder_Dir;
     encoder->Encoder_Error = Encoder_Error;
+
+    encoder->Count_Scale = __2PI / (float)Encoder_Res;
+    encoder->Count_Mask = Encoder_Res - 1;         // 编码器计数掩码，用于取模操作
 }
 
 /**
@@ -34,20 +39,16 @@ void Encoder_Read_Data_Register(Encoder_t *encoder, Encoder_Read_Data_t Read_Dat
  *        电角度 Theta_e = Theta * Motor_Pn
  */
 void Encoder_Update(Encoder_t *encoder, float* Theta_e){
-    uint32_t Temp = encoder->Read_Data();
+    uint32_t Count = encoder->Read_Data();
     if(encoder->Encoder_Dir == 0){                               // 编码器方向为正
-        encoder->Pulse_Count = Temp;
+        encoder->Pulse_Count = Count;
     }
     else{                                                        // 编码器方向为负
-        encoder->Pulse_Count = (Temp == 0) ? 0 : encoder->Encoder_Res - Temp;
+        encoder->Pulse_Count = (0u - Count) & encoder->Count_Mask;              // 反向时为(2^32 - 1)，这边按位与操作取模
     }
-    float Temp_Theta = (encoder->Pulse_Count - encoder->Encoder_Error + encoder->Encoder_Res) % encoder->Encoder_Res;
-    encoder->Theta = (float)Temp_Theta / (float)encoder->Encoder_Res * __2PI;
-    encoder->Theta_e = encoder->Theta * (float)encoder->Motor_Pn;
-    encoder->Theta_e = fmodf(encoder->Theta_e, __2PI);
-    if(encoder->Theta_e < 0){
-        encoder->Theta_e += __2PI;
-    }
+    uint32_t Caculate_Count = (encoder->Pulse_Count - encoder->Encoder_Error) & encoder->Count_Mask;
+    encoder->Theta = (float)Caculate_Count * encoder->Count_Scale;
+    encoder->Theta_e = (float)((Caculate_Count * encoder->Motor_Pn) & encoder->Count_Mask) * encoder->Count_Scale;
     if(Theta_e != NULL){
         *Theta_e = encoder->Theta_e;
     }

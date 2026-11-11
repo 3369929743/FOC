@@ -14,8 +14,8 @@
 #define FOC_CLK_PERIOD (1.0f / FOC_CLK)                 //FOC时钟周期，单位：s
 
 /*===================== 编码器参数 ====================== */
-#define ENCODER_RES 16383.0f                            //编码器分辨率，单位：计数/转
-#define ENCODER_RES_CALCULATE (ENCODER_RES + 1)         //用于FOC计算的编码器分辨率，单位：计数/转
+#define ENCODER_COUNT_MAX 16383.0f                            //编码器分辨率，单位：计数/转
+#define ENCODER_RES_CALCULATE (ENCODER_COUNT_MAX + 1)         //用于FOC计算的编码器分辨率，单位：计数/转
 #define ENCODER_DIR 0.0f                                //编码器方向
 #define ENCODER_ERROR 12498                             //编码器零点误差
 
