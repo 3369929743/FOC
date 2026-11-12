@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "cordic.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -103,6 +104,7 @@ int main(void)
   MX_ADC1_Init();
   MX_SPI1_Init();
   MX_USART3_UART_Init();
+  MX_CORDIC_Init();
   /* USER CODE BEGIN 2 */
   State_Machine_Init();
   /* USER CODE END 2 */

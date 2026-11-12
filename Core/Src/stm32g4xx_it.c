@@ -57,6 +57,7 @@
 /* External variables --------------------------------------------------------*/
 extern PCD_HandleTypeDef hpcd_USB_FS;
 extern ADC_HandleTypeDef hadc1;
+extern CORDIC_HandleTypeDef hcordic;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
@@ -285,6 +286,20 @@ void TIM7_IRQHandler(void)
   /* USER CODE BEGIN TIM7_IRQn 1 */
 
   /* USER CODE END TIM7_IRQn 1 */
+}
+
+/**
+  * @brief This function handles CORDIC interrupt.
+  */
+void CORDIC_IRQHandler(void)
+{
+  /* USER CODE BEGIN CORDIC_IRQn 0 */
+
+  /* USER CODE END CORDIC_IRQn 0 */
+  HAL_CORDIC_IRQHandler(&hcordic);
+  /* USER CODE BEGIN CORDIC_IRQn 1 */
+
+  /* USER CODE END CORDIC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

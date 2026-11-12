@@ -1,0 +1,73 @@
+RM0440                                                                                                   CORDIC coprocessor (CORDIC)
+
+
+                                            Figure 40. CORDIC convergence for square root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Note:            The convergence rate decreases as the quantization error starts to become significant.
+                 The CORDIC can perform four iterations per clock cycle. For each function, the maximum
+                 error remaining after every four iterations is shown in Table 118, together with the number of
+                 clock cycles required to reach that precision. From this table, the desired number of cycles
+                 can be determined and programmed in the PRECISION field of the CORDIC_CR register.
+                 The coprocessor stops as soon as the programmed number of iterations is completed, and
+                 the result can be read immediately.
+
+
+
+
+
+
+
+
+                                              Table 118. Precision vs. number of iterations
+                                                                               Number of                   Max residual error(1)
+                       Function                   Number of iterations            cycles
+                                                                                                     q1.31 format     q1.15 format
+                                                       412-3                      2-3
+                                                       822-7                      2-7
+
+                       Sin, Cos,                       12                                   3                           2-11                     2-11
+                   Phase(2), Mod,                      16                                   4                           2-15                    2-15
+                        Atan(4)
+                                                       20                                   5                           2-18                    2-16
+                                                       24                                   6                           2-19                    2-16
+
+
+
+
+
+
+
+
+                                                             RM0440 Rev 9                                                                  471/2140
+
+                                                                                                                                                   478

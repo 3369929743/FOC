@@ -172,9 +172,9 @@ static inline void PMSM_FOC_Run(PMSM_t *self){
     self->Foc.Id_Filter = self->Foc.Id_Filter * self->Foc.Filter_Alpha + self->Foc.Id * (1.0f - self->Foc.Filter_Alpha);
     self->Foc.Iq_Filter = self->Foc.Iq_Filter * self->Foc.Filter_Alpha + self->Foc.Iq * (1.0f - self->Foc.Filter_Alpha);
 
-    /* 更新Vq和Vd,电流PI闭环 */  
-    self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq_Filter);
-    self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id_Filter);
+    // /* 更新Vq和Vd,电流PI闭环 */  
+    // self->Foc.Vq =  PID_Calculate(&self->PID_Iq, self->Foc.Iq_Filter);
+    // self->Foc.Vd = PID_Calculate(&self->PID_Id, self->Foc.Id_Filter);
 
     /* 如果没启动电流环，Vq和Vd都设为0，避免零速噪声 */
     if(self->PID_Iq.Target == 0.0f){

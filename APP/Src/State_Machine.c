@@ -86,10 +86,13 @@ static SoftTimer_t Soft_Timer_Vofa;
 
 /*-------------------- Vofa通道实例 -------------------- */
 Vofa_Ch_t ADC_Iq_Ch;
-Vofa_Ch_t ADC_Vd_Ch, ADC_Vq_Ch;
+Vofa_Ch_t ADC_Vq_Ch;
 Vofa_Ch_t FOC_Iq_Integral;
 Vofa_Ch_t FOC_Iq_Target_Ch, FOC_Iq_Output_Ch;
 Vofa_Ch_t FOC_Iq_PI_Error;
+
+Vofa_Ch_t FOC_Theta_e_Sin_Ch;
+Vofa_Ch_t FOC_Theta_e_Cos_Ch;
 
 /*-------------------- 串口实例 -------------------- */
 static Serial_t Serial_Screen;
@@ -176,11 +179,13 @@ void State_Machine_Init(void){
     /* 初始化Vofa通道 */
     Vofa_Init(CDC_Transmit_FS);
     /* 注册Vofa通道 */
-    Vofa_Ch_Register(6, &ADC_Iq_Ch, &ADC_Vd_Ch, &ADC_Vq_Ch, &FOC_Iq_Integral, &FOC_Iq_Target_Ch, &FOC_Iq_Output_Ch);
+    Vofa_Ch_Register(5, &ADC_Iq_Ch, &ADC_Vq_Ch, &FOC_Iq_Integral, &FOC_Iq_Target_Ch, &FOC_Iq_Output_Ch);
     Vofa_Ch_Register(1, &FOC_Iq_PI_Error);
+    Vofa_Ch_Register(2, &FOC_Theta_e_Sin_Ch, &FOC_Theta_e_Cos_Ch);
     /* 设置Vofa通道数据 */
-    Vofa_Data_Register(6, &PMSM.Foc.Iq, &PMSM.Foc.Vd, &PMSM.Foc.Vq, &PMSM.PID_Iq.Integral, &PMSM.PID_Iq.Target, &PMSM.PID_Iq.Output);
+    Vofa_Data_Register(5, &PMSM.Foc.Iq, &PMSM.Foc.Vq, &PMSM.PID_Iq.Integral, &PMSM.PID_Iq.Target, &PMSM.PID_Iq.Output);
     Vofa_Data_Register(1, &PMSM.PID_Iq.Cur_Error);
+    Vofa_Data_Register(2, &PMSM.Foc.sin_Theta, &PMSM.Foc.cos_Theta);
 
     /* 初始化串口 */
     Serial_Init(&Serial_Screen, Serial_3);
